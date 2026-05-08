@@ -9,6 +9,8 @@ import Results from './pages/Results'
 import Contact from './pages/Contact'
 import Emergency from './pages/Emergency'
 import Profile from './pages/Profile'
+import Leaderboard from './pages/Leaderboard'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -18,24 +20,14 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute><Dashboard /></ProtectedRoute>
-          } />
-          <Route path="/report" element={
-            <ProtectedRoute><Report /></ProtectedRoute>
-          } />
-          <Route path="/results" element={
-            <ProtectedRoute><Results /></ProtectedRoute>
-          } />
-          <Route path="/contact" element={
-            <ProtectedRoute><Contact /></ProtectedRoute>
-          } />
-          <Route path="/emergency" element={
-            <ProtectedRoute><Emergency /></ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute><Profile /></ProtectedRoute>
-          } />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
+          <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+          <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
