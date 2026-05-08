@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Map from '../components/Map'
 import client from '../api/client'
+import NotificationCenter from '../components/NotificationCenter'
 
 const severityColor = {
   low: { bg: '#dcfce7', text: '#16a34a' },
@@ -90,6 +91,16 @@ export default function Dashboard() {
             🚨 Emergency
           </button>
           <button
+            onClick={() => navigate('/leaderboard')}
+            style={{
+              background: '#faf5ff', color: '#7c3aed',
+              border: '1.5px solid #e9d5ff', borderRadius: '8px',
+              padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+            }}
+          >
+            🏆
+          </button>
+          <button
             onClick={() => navigate('/contact')}
             style={{
               background: 'transparent', color: '#64748b',
@@ -99,6 +110,9 @@ export default function Dashboard() {
           >
             Contact
           </button>
+
+          {/* Notification bell */}
+          <NotificationCenter />
 
           {/* Profile avatar button */}
           <button
@@ -117,6 +131,20 @@ export default function Dashboard() {
           >
             {initials}
           </button>
+
+          {/* Admin link — only shows if user is admin */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                background: '#1e293b', color: '#4ade80',
+                border: '1.5px solid #334155', borderRadius: '8px',
+                padding: '8px 16px', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+              }}
+            >
+              ⚙️ Admin
+            </button>
+          )}
 
           <button
             onClick={handleLogout}

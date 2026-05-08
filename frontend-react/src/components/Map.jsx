@@ -31,13 +31,11 @@ export default function Map({ reports = [], onLocationSelect, center = [-98.5, 3
     }
   }, [])
 
-  // Fly to new center when it changes
   useEffect(() => {
     if (!mapRef.current) return
     mapRef.current.flyTo({ center, zoom, duration: 1500 })
   }, [center[0], center[1], zoom])
 
-  // Add/update markers
   useEffect(() => {
     if (!mapRef.current) return
     markersRef.current.forEach(m => m.remove())
@@ -50,10 +48,30 @@ export default function Map({ reports = [], onLocationSelect, center = [-98.5, 3
       const el = document.createElement('div')
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${colors[report.severity] || '#6b7280'};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;`
 
+      // Format date and time
+      const date = new Date(report.created_at)
+      const localDate = date.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short',
+        day: 'numeric', year: 'numeric',
+      })
+      const localTime = date.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit', hour12: true,
+      })
+      const diff = (Date.now() - date) / 1000
+      const timeAgo = diff < 60 ? 'just now'
+        : diff < 3600 ? `${Math.floor(diff / 60)} min ago`
+        : diff < 86400 ? `${Math.floor(diff / 3600)} hr ago`
+        : `${Math.floor(diff / 86400)} days ago`
+
       const popup = new maplibregl.Popup({ offset: 12 }).setHTML(`
         <strong>${report.hazard_type}</strong><br/>
         Severity: ${report.severity}<br/>
-        ${report.description?.slice(0, 80)}
+        ${report.description?.slice(0, 80) || ''}<br/>
+        <hr style="margin:6px 0;border:none;border-top:1px solid #e2e8f0;"/>
+        📅 ${localDate}<br/>
+        ⏰ ${localTime}<br/>
+        🕐 ${timeAgo}<br/>
+        ${report.name ? `👤 ${report.name}` : ''}
       `)
 
       const marker = new maplibregl.Marker({ element: el })
