@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../db");
 const multer = require("multer");
 const path = require("path");
+const xss = require("xss");
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.get("/all", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 router.post("/create", upload.single("image"), async (req, res) => {
   try {
     const {
@@ -39,6 +41,7 @@ router.post("/create", upload.single("image"), async (req, res) => {
       hazard_type,
       severity,
       description,
+      custom_description,
       latitude,
       longitude,
       location_method,
@@ -49,14 +52,24 @@ router.post("/create", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // FEAT-1 — validate Others must have custom_description
+    if (hazard_type === 'Others' && !custom_description?.trim()) {
+      return res.status(400).json({ message: "Please describe the hazard type" });
+    }
+
+    // SEC3 — sanitize all user text inputs
+    const clean_hazard_type = xss(hazard_type.trim());
+    const clean_description = xss(description.trim());
+    const clean_custom_description = custom_description ? xss(custom_description.trim()) : null;
+
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const result = await pool.query(
       `INSERT INTO reports 
-        (user_id, hazard_type, severity, description, latitude, longitude, location_method, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (user_id, hazard_type, severity, description, custom_description, latitude, longitude, location_method, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [user_id, hazard_type, severity, description,
+      [user_id, clean_hazard_type, severity, clean_description, clean_custom_description,
        latitude, longitude, location_method || "gps", image_url]
     );
 

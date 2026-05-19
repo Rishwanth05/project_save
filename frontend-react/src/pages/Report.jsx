@@ -5,7 +5,21 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import client from '../api/client'
 
-const HAZARD_TYPES = ['Pothole', 'Broken Light', 'Flooding', 'Fallen Tree', 'Gas Leak', 'Exposed Wire', 'Road Damage', 'Other']
+// FEAT-1 — 11 categories: 10 predefined + Others
+const HAZARD_TYPES = [
+  'Pothole',
+  'Broken Street Light',
+  'Flooding',
+  'Fallen Tree',
+  'Gas Leak',
+  'Exposed Wire',
+  'Road Damage',
+  'Broken Sidewalk',
+  'Illegal Dumping',
+  'Graffiti / Vandalism',
+  'Others',
+]
+
 const SEVERITIES = [
   { value: 'low', label: 'Low', color: '#16a34a', bg: '#dcfce7', desc: 'Minor issue, not urgent' },
   { value: 'medium', label: 'Medium', color: '#ca8a04', bg: '#fef9c3', desc: 'Needs attention soon' },
@@ -77,7 +91,7 @@ export default function Report() {
   const [form, setForm] = useState({
     hazard_type: '', severity: '', description: '',
     latitude: '', longitude: '', location_method: 'gps',
-    custom_hazard: '',
+    custom_description: '',
   })
   const [address, setAddress] = useState({
     street: '', city: '', state: '', landmark: '',
@@ -139,11 +153,18 @@ export default function Report() {
     if (!form.latitude || !form.longitude) { setError('Please set a location'); return }
     setSubmitting(true)
     setError('')
-    const hazardName = form.hazard_type === 'Other' && form.custom_hazard
-      ? form.custom_hazard.trim()
-      : form.hazard_type
     const fd = new FormData()
-    Object.entries({ ...form, hazard_type: hazardName, user_id: user.id }).forEach(([k, v]) => fd.append(k, v))
+    fd.append('user_id', user.id)
+    fd.append('hazard_type', form.hazard_type)
+    fd.append('severity', form.severity)
+    fd.append('description', form.description)
+    fd.append('latitude', form.latitude)
+    fd.append('longitude', form.longitude)
+    fd.append('location_method', form.location_method)
+    // FEAT-1 — send custom_description when Others is selected
+    if (form.hazard_type === 'Others') {
+      fd.append('custom_description', form.custom_description.trim())
+    }
     if (image) fd.append('image', image)
     try {
       await client.post('/reports/create', fd, {
@@ -235,12 +256,13 @@ export default function Report() {
 
             <div style={{ marginBottom: '24px' }}>
               <label style={labelStyle}>Hazard Type</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {/* FEAT-1 — 11 category grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {HAZARD_TYPES.map(t => (
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, hazard_type: t, custom_hazard: '' }))}
+                    onClick={() => setForm(f => ({ ...f, hazard_type: t, custom_description: '' }))}
                     style={{
                       padding: '10px 8px', borderRadius: '8px', fontSize: '13px',
                       fontWeight: '500', cursor: 'pointer', textAlign: 'center',
@@ -255,18 +277,18 @@ export default function Report() {
                 ))}
               </div>
 
-              {form.hazard_type === 'Other' && (
+              {/* FEAT-1 — custom_description field appears only for Others */}
+              {form.hazard_type === 'Others' && (
                 <div style={{ marginTop: '12px' }}>
-                  <label style={labelStyle}>Briefly describe the hazard type (max 3 words)</label>
+                  <label style={labelStyle}>
+                    Describe the hazard type <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. Broken Fence Post"
-                    maxLength={30}
-                    value={form.custom_hazard}
-                    onChange={e => {
-                      const words = e.target.value.trim().split(/\s+/)
-                      if (words.length <= 3) setForm(f => ({ ...f, custom_hazard: e.target.value }))
-                    }}
+                    placeholder="e.g. Broken Fence, Collapsed Wall, Sinkhole…"
+                    maxLength={100}
+                    value={form.custom_description}
+                    onChange={e => setForm(f => ({ ...f, custom_description: e.target.value }))}
                     style={{
                       width: '100%', padding: '12px 16px',
                       border: '1.5px solid #16a34a', borderRadius: '10px',
@@ -274,7 +296,7 @@ export default function Report() {
                     }}
                   />
                   <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
-                    This will appear as the hazard name on the dashboard
+                    Required when selecting Others
                   </p>
                 </div>
               )}
@@ -325,9 +347,9 @@ export default function Report() {
               type="button"
               onClick={() => {
                 if (!form.hazard_type) { setError('Please select a hazard type'); return }
-                if (form.hazard_type === 'Other' && !form.custom_hazard?.trim()) { setError('Please describe the hazard type'); return }
+                if (form.hazard_type === 'Others' && !form.custom_description?.trim()) { setError('Please describe the hazard type'); return }
                 if (!form.severity) { setError('Please select a severity level'); return }
-                if (!form.description) { setError('Please add a description'); return }
+                if (!form.description.trim()) { setError('Please add a description'); return }
                 setError('')
                 setStep(2)
               }}
@@ -348,7 +370,6 @@ export default function Report() {
             <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: '#0f172a' }}>Pin the Location</h2>
             <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Use GPS, enter your address, or click the map</p>
 
-            {/* GPS */}
             <button
               type="button"
               onClick={handleGPS}
@@ -365,14 +386,12 @@ export default function Report() {
               📍 {gpsLoading ? 'Getting location…' : 'Auto-detect My Location (GPS)'}
             </button>
 
-            {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
               <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
               <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '500' }}>or enter address manually</span>
               <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
             </div>
 
-            {/* Address Fields */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{ marginBottom: '12px' }}>
                 <label style={labelStyle}>Street Address</label>
@@ -415,10 +434,10 @@ export default function Report() {
               </div>
 
               <div style={{ marginBottom: '12px' }}>
-                <label style={labelStyle}>Nearby Landmark <span style={{ color: '#94a3b8', fontWeight: '400' }}>(optional but helpful)</span></label>
+                <label style={labelStyle}>Nearby Landmark <span style={{ color: '#94a3b8', fontWeight: '400' }}>(optional)</span></label>
                 <input
                   type="text"
-                  placeholder="e.g. In front of Walmart, near the park entrance, behind the school…"
+                  placeholder="e.g. In front of Walmart, near the park entrance…"
                   value={address.landmark}
                   onChange={e => setAddress(a => ({ ...a, landmark: e.target.value }))}
                   style={inputStyle}
@@ -441,7 +460,6 @@ export default function Report() {
               </button>
             </div>
 
-            {/* Location confirmed */}
             {form.latitude && (
               <div style={{
                 background: '#f0fdf4', border: '1px solid #bbf7d0',
@@ -453,7 +471,6 @@ export default function Report() {
               </div>
             )}
 
-            {/* Map */}
             <div style={{ height: '380px', borderRadius: '12px', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
               <LocationMap
                 lat={parseFloat(form.latitude)}
@@ -538,12 +555,11 @@ export default function Report() {
               <input id="photo-input" type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
             </div>
 
-            {/* Summary */}
             <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '16px', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Report Summary</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {[
-                  ['Hazard', form.hazard_type === 'Other' ? form.custom_hazard : form.hazard_type],
+                  ['Hazard', form.hazard_type === 'Others' ? `Others — ${form.custom_description}` : form.hazard_type],
                   ['Severity', form.severity],
                   ['Address', address.street ? `${address.street}, ${address.city}` : `${form.latitude}, ${form.longitude}`],
                   ['Landmark', address.landmark || 'None provided'],

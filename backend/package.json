@@ -14,7 +14,9 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.4.1",
@@ -22,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "pg": "^8.20.0",
+    "xss": "^1.0.15",
     "zod": "^4.4.1"
   },
   "devDependencies": {

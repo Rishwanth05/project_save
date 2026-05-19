@@ -7,7 +7,7 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const [step, setStep] = useState('credentials') // 'credentials' | 'otp'
+  const [step, setStep] = useState('credentials')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
@@ -93,7 +93,14 @@ export default function Login() {
                 {loading ? 'Sending OTP…' : 'Continue →'}
               </button>
             </form>
-            <p style={styles.switch}>Don't have an account? <Link to="/signup" style={styles.link}>Sign up</Link></p>
+            <p style={styles.switch}>
+              Don't have an account? <Link to="/signup" style={styles.link}>Sign up</Link>
+            </p>
+            <p style={{ ...styles.switch, marginTop: '8px' }}>
+              <Link to="/forgot-password" style={{ ...styles.link, fontSize: '13px', color: '#64748b' }}>
+                Forgot your password?
+              </Link>
+            </p>
           </>
         ) : (
           <>
