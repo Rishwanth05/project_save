@@ -37,14 +37,8 @@ router.get("/all", async (req, res) => {
 router.post("/create", upload.single("image"), async (req, res) => {
   try {
     const {
-      user_id,
-      hazard_type,
-      severity,
-      description,
-      custom_description,
-      latitude,
-      longitude,
-      location_method,
+      user_id, hazard_type, severity, description,
+      custom_description, latitude, longitude, location_method,
     } = req.body;
 
     if (!user_id || !hazard_type || !severity || !description ||
@@ -52,12 +46,10 @@ router.post("/create", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // FEAT-1 — validate Others must have custom_description
     if (hazard_type === 'Others' && !custom_description?.trim()) {
       return res.status(400).json({ message: "Please describe the hazard type" });
     }
 
-    // SEC3 — sanitize all user text inputs
     const clean_hazard_type = xss(hazard_type.trim());
     const clean_description = xss(description.trim());
     const clean_custom_description = custom_description ? xss(custom_description.trim()) : null;
@@ -75,19 +67,12 @@ router.post("/create", upload.single("image"), async (req, res) => {
 
     const newReport = result.rows[0]
 
-    // RT-1 — Emit new report to all connected clients
     const io = req.app.get('io')
     if (io) {
-      io.emit('new-report', {
-        ...newReport,
-        name: req.body.reporter_name || 'Anonymous',
-      })
+      io.emit('new-report', { ...newReport, name: req.body.reporter_name || 'Anonymous' })
     }
 
-    res.status(201).json({
-      message: "Report created ✅",
-      report: newReport
-    });
+    res.status(201).json({ message: "Report created ✅", report: newReport });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -97,21 +82,16 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
   try {
     const { report_id } = req.body;
 
-    if (!report_id) {
+    if (!report_id)
       return res.status(400).json({ message: "report_id is required" });
-    }
 
-    if (!req.file) {
-      return res.status(400).json({
-        message: "Camera proof image is required to resolve a report"
-      });
-    }
+    if (!req.file)
+      return res.status(400).json({ message: "Camera proof image is required to resolve a report" });
 
     const proof_url = `/uploads/${req.file.filename}`;
 
     await pool.query(
-      `UPDATE reports SET status = 'resolved', resolved_at = NOW() 
-       WHERE id = $1`,
+      `UPDATE reports SET status = 'resolved', resolved_at = NOW() WHERE id = $1`,
       [report_id]
     );
 
@@ -122,12 +102,47 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
       [report_id, proof_url]
     );
 
-    res.json({
-      message: "Report resolved ✅",
-      proofUrl: proof_url
-    });
+    res.json({ message: "Report resolved ✅", proofUrl: proof_url });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// DUP1 — Duplicate detection: check 50m radius + same category + 24hr window
+router.post("/check-duplicate", async (req, res) => {
+  try {
+    const { latitude, longitude, hazard_type } = req.body
+    if (!latitude || !longitude || !hazard_type)
+      return res.status(400).json({ message: 'Missing fields' })
+
+    const result = await pool.query(
+      `SELECT id, hazard_type, description, created_at,
+        (6371000 * acos(
+          cos(radians($1)) * cos(radians(latitude)) *
+          cos(radians(longitude) - radians($2)) +
+          sin(radians($1)) * sin(radians(latitude))
+        )) AS distance_meters
+       FROM reports
+       WHERE hazard_type = $3
+         AND created_at > NOW() - INTERVAL '24 hours'
+         AND latitude IS NOT NULL
+         AND longitude IS NOT NULL
+       HAVING (6371000 * acos(
+          cos(radians($1)) * cos(radians(latitude)) *
+          cos(radians(longitude) - radians($2)) +
+          sin(radians($1)) * sin(radians(latitude))
+        )) < 50
+       ORDER BY distance_meters ASC
+       LIMIT 1`,
+      [latitude, longitude, hazard_type]
+    )
+
+    if (result.rows.length > 0)
+      return res.json({ isDuplicate: true, existing: result.rows[0] })
+
+    res.json({ isDuplicate: false })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 });
 

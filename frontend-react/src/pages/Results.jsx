@@ -10,7 +10,6 @@ const severityColor = {
   critical: { bg: '#f3e8ff', text: '#9333ea' },
 }
 
-// Haversine distance in miles
 function getDistanceMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -28,7 +27,7 @@ function ResolveModal({ report, onClose, onResolved }) {
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
-    if (!proof) { setError('Please upload a proof photo'); return }
+    if (!proof) { setError('Please take a proof photo'); return }
     setSubmitting(true)
     setError('')
     const fd = new FormData()
@@ -61,17 +60,22 @@ function ResolveModal({ report, onClose, onResolved }) {
             <img src={report.image_url} alt="before" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
           </div>
         )}
-        <div onClick={() => document.getElementById('proof-input').click()} style={{ border: '2px dashed #e2e8f0', borderRadius: '12px', padding: '28px', textAlign: 'center', cursor: 'pointer', background: preview ? '#000' : '#f8fafc', marginBottom: '20px', minHeight: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.2s' }}
+        <div onClick={() => document.getElementById('proof-input').click()}
+          style={{ border: '2px dashed #e2e8f0', borderRadius: '12px', padding: '28px', textAlign: 'center', cursor: 'pointer', background: preview ? '#000' : '#f8fafc', marginBottom: '20px', minHeight: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#16a34a'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}>
-          {preview ? <img src={preview} alt="proof" style={{ maxHeight: '140px', borderRadius: '8px', objectFit: 'contain' }} /> : (
-            <div>
-              <div style={{ fontSize: '28px', marginBottom: '8px' }}>📷</div>
-              <p style={{ color: '#64748b', fontWeight: '500', fontSize: '14px' }}>Upload AFTER photo (proof of fix)</p>
-              <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>PNG, JPG required</p>
-            </div>
-          )}
-          <input id="proof-input" type="file" accept="image/*" style={{ display: 'none' }}
+          {preview
+            ? <img src={preview} alt="proof" style={{ maxHeight: '140px', borderRadius: '8px', objectFit: 'contain' }} />
+            : (
+              <div>
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div>
+                {/* CAM1 — camera only label */}
+                <p style={{ color: '#64748b', fontWeight: '500', fontSize: '14px' }}>Take AFTER photo with camera</p>
+                <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Camera only — gallery blocked for verification</p>
+              </div>
+            )}
+          {/* CAM1 — capture="environment" forces rear camera, blocks gallery */}
+          <input id="proof-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
             onChange={e => { const file = e.target.files[0]; if (file) { setProof(file); setPreview(URL.createObjectURL(file)) } }} />
         </div>
         {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', color: '#dc2626', fontSize: '14px', marginBottom: '16px' }}>{error}</div>}
@@ -125,16 +129,18 @@ function BeforeAfterModal({ report, onClose }) {
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
               <p style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Before</p>
             </div>
-            {report.image_url ? <img src={report.image_url} alt="before" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #fee2e2' }} /> :
-              <div style={{ width: '100%', height: '180px', background: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', border: '2px solid #e2e8f0' }}>No photo</div>}
+            {report.image_url
+              ? <img src={report.image_url} alt="before" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #fee2e2' }} />
+              : <div style={{ width: '100%', height: '180px', background: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', border: '2px solid #e2e8f0' }}>No photo</div>}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
               <p style={{ fontSize: '12px', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>After</p>
             </div>
-            {report.proof_url ? <img src={report.proof_url} alt="after" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #bbf7d0' }} /> :
-              <div style={{ width: '100%', height: '180px', background: '#f0fdf4', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: '13px', border: '2px solid #bbf7d0' }}>Proof loading…</div>}
+            {report.proof_url
+              ? <img src={report.proof_url} alt="after" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #bbf7d0' }} />
+              : <div style={{ width: '100%', height: '180px', background: '#f0fdf4', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: '13px', border: '2px solid #bbf7d0' }}>Proof loading…</div>}
           </div>
         </div>
         <div style={{ height: '1px', background: '#e2e8f0', marginBottom: '24px' }} />
@@ -198,7 +204,7 @@ function BeforeAfterModal({ report, onClose }) {
 }
 
 function AreaFilterPanel({ onApply, onClear, active }) {
-  const [mode, setMode] = useState('city') // 'city' or 'radius'
+  const [mode, setMode] = useState('city')
   const [city, setCity] = useState('')
   const [radius, setRadius] = useState(25)
   const [searching, setSearching] = useState(false)
@@ -221,20 +227,14 @@ function AreaFilterPanel({ onApply, onClear, active }) {
       }
     } else {
       navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          onApply({ lat: coords.latitude, lng: coords.longitude, radius, label: 'Your Location' })
-        },
+        ({ coords }) => onApply({ lat: coords.latitude, lng: coords.longitude, radius, label: 'Your Location' }),
         () => setError('GPS unavailable. Use city search instead.')
       )
     }
   }
 
   return (
-    <div style={{
-      background: '#fff', borderRadius: '12px', padding: '20px',
-      marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      border: active ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
-    }}>
+    <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: active ? '1.5px solid #16a34a' : '1px solid #e2e8f0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>📍</span>
@@ -250,16 +250,9 @@ function AreaFilterPanel({ onApply, onClear, active }) {
         )}
       </div>
 
-      {/* Mode toggle */}
       <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '4px', marginBottom: '16px', width: 'fit-content' }}>
-        {[{ id: 'city', label: '🏙️ Search City', }, { id: 'radius', label: '📡 My Location' }].map(m => (
-          <button key={m.id} onClick={() => setMode(m.id)} style={{
-            padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: 'none',
-            background: mode === m.id ? '#fff' : 'transparent',
-            color: mode === m.id ? '#0f172a' : '#64748b',
-            boxShadow: mode === m.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-            transition: 'all 0.15s',
-          }}>
+        {[{ id: 'city', label: '🏙️ Search City' }, { id: 'radius', label: '📡 My Location' }].map(m => (
+          <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: 'none', background: mode === m.id ? '#fff' : 'transparent', color: mode === m.id ? '#0f172a' : '#64748b', boxShadow: mode === m.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
             {m.label}
           </button>
         ))}
@@ -269,65 +262,30 @@ function AreaFilterPanel({ onApply, onClear, active }) {
         {mode === 'city' && (
           <div style={{ flex: 2, minWidth: '200px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>City / Area Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Hyderabad, Mumbai, Kansas City…"
-              value={city}
-              onChange={e => setCity(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleApply()}
+            <input type="text" placeholder="e.g. Hyderabad, Mumbai, Kansas City…" value={city}
+              onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleApply()}
               style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
-              onFocus={e => e.target.style.borderColor = '#16a34a'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-            />
+              onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
           </div>
         )}
-
         {mode === 'radius' && (
           <div style={{ flex: 2, minWidth: '200px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Using your current GPS location
-            </label>
-            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '8px', color: '#16a34a', fontSize: '14px', fontWeight: '500' }}>
-              📡 Will use device location
-            </div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Using your current GPS location</label>
+            <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '8px', color: '#16a34a', fontSize: '14px', fontWeight: '500' }}>📡 Will use device location</div>
           </div>
         )}
-
         <div style={{ flex: 1, minWidth: '160px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-            Radius: <span style={{ color: '#16a34a' }}>{radius} miles</span>
-          </label>
-          <input
-            type="range"
-            min={5} max={200} step={5}
-            value={radius}
-            onChange={e => setRadius(Number(e.target.value))}
-            style={{ width: '100%', accentColor: '#16a34a' }}
-          />
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Radius: <span style={{ color: '#16a34a' }}>{radius} miles</span></label>
+          <input type="range" min={5} max={200} step={5} value={radius} onChange={e => setRadius(Number(e.target.value))} style={{ width: '100%', accentColor: '#16a34a' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
             <span>5 mi</span><span>200 mi</span>
           </div>
         </div>
-
-        <button
-          onClick={handleApply}
-          disabled={searching}
-          style={{
-            padding: '10px 20px', background: searching ? '#86efac' : '#16a34a',
-            color: '#fff', border: 'none', borderRadius: '8px',
-            fontSize: '14px', fontWeight: '600', cursor: searching ? 'not-allowed' : 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <button onClick={handleApply} disabled={searching} style={{ padding: '10px 20px', background: searching ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: searching ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
           {searching ? 'Searching…' : '🔍 Apply'}
         </button>
       </div>
-
-      {error && (
-        <div style={{ marginTop: '10px', color: '#dc2626', fontSize: '13px', background: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={{ marginTop: '10px', color: '#dc2626', fontSize: '13px', background: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>{error}</div>}
     </div>
   )
 }
@@ -341,7 +299,7 @@ export default function Results() {
   const [view, setView] = useState('grid')
   const [resolveTarget, setResolveTarget] = useState(null)
   const [viewProofTarget, setViewProofTarget] = useState(null)
-  const [areaFilter, setAreaFilter] = useState(null) // { lat, lng, radius, label }
+  const [areaFilter, setAreaFilter] = useState(null)
   const [showAreaPanel, setShowAreaPanel] = useState(false)
 
   useEffect(() => {
@@ -353,16 +311,12 @@ export default function Results() {
 
   useEffect(() => {
     let result = reports
-
-    // Area filter
     if (areaFilter) {
       result = result.filter(r => {
         if (!r.latitude || !r.longitude) return false
-        const dist = getDistanceMiles(areaFilter.lat, areaFilter.lng, parseFloat(r.latitude), parseFloat(r.longitude))
-        return dist <= areaFilter.radius
+        return getDistanceMiles(areaFilter.lat, areaFilter.lng, parseFloat(r.latitude), parseFloat(r.longitude)) <= areaFilter.radius
       })
     }
-
     if (filters.hazard_type) result = result.filter(r => r.hazard_type === filters.hazard_type)
     if (filters.severity) result = result.filter(r => r.severity === filters.severity)
     if (filters.search) result = result.filter(r =>
@@ -382,15 +336,9 @@ export default function Results() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      {resolveTarget && <ResolveModal report={resolveTarget} onClose={() => setResolveTarget(null)} onResolved={handleResolved} />}
+      {viewProofTarget && <BeforeAfterModal report={viewProofTarget} onClose={() => setViewProofTarget(null)} />}
 
-      {resolveTarget && (
-        <ResolveModal report={resolveTarget} onClose={() => setResolveTarget(null)} onResolved={handleResolved} />
-      )}
-      {viewProofTarget && (
-        <BeforeAfterModal report={viewProofTarget} onClose={() => setViewProofTarget(null)} />
-      )}
-
-      {/* Navbar */}
       <nav style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
@@ -405,7 +353,6 @@ export default function Results() {
         </button>
       </nav>
 
-      {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', padding: '32px 24px', textAlign: 'center', color: '#fff' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '6px' }}>Reported Hazards</h1>
         <p style={{ opacity: 0.85, fontSize: '15px' }}>
@@ -416,50 +363,25 @@ export default function Results() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
 
-        {/* Area filter toggle button */}
         <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button
-            onClick={() => setShowAreaPanel(p => !p)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '10px 18px', borderRadius: '10px', fontSize: '14px',
-              fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s',
-              background: showAreaPanel || areaFilter ? '#16a34a' : '#fff',
-              color: showAreaPanel || areaFilter ? '#fff' : '#374151',
-              border: showAreaPanel || areaFilter ? 'none' : '1.5px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            }}
-          >
+          <button onClick={() => setShowAreaPanel(p => !p)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s', background: showAreaPanel || areaFilter ? '#16a34a' : '#fff', color: showAreaPanel || areaFilter ? '#fff' : '#374151', border: showAreaPanel || areaFilter ? 'none' : '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             📍 {areaFilter ? `Near ${areaFilter.label} (${areaFilter.radius}mi)` : 'Filter by Area'}
           </button>
-
-          {areaFilter && (
-            <span style={{ fontSize: '13px', color: '#64748b' }}>
-              Showing {filtered.length} of {reports.length} reports
-            </span>
-          )}
+          {areaFilter && <span style={{ fontSize: '13px', color: '#64748b' }}>Showing {filtered.length} of {reports.length} reports</span>}
         </div>
 
-        {/* Area panel */}
         {showAreaPanel && (
-          <AreaFilterPanel
-            active={!!areaFilter}
-            onApply={(a) => { setAreaFilter(a); setShowAreaPanel(false) }}
-            onClear={() => { setAreaFilter(null) }}
-          />
+          <AreaFilterPanel active={!!areaFilter} onApply={(a) => { setAreaFilter(a); setShowAreaPanel(false) }} onClear={() => setAreaFilter(null)} />
         )}
 
-        {/* Main filters */}
         <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 2, minWidth: '200px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Search</label>
             <input type="text" placeholder="Search by hazard or description…" value={filters.search}
               onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
               style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
-              onFocus={e => e.target.style.borderColor = '#16a34a'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+              onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
           </div>
-
           <div style={{ flex: 1, minWidth: '150px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Hazard Type</label>
             <select value={filters.hazard_type} onChange={e => setFilters(f => ({ ...f, hazard_type: e.target.value }))}
@@ -468,7 +390,6 @@ export default function Results() {
               {uniqueHazards.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
           </div>
-
           <div style={{ flex: 1, minWidth: '150px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Severity</label>
             <select value={filters.severity} onChange={e => setFilters(f => ({ ...f, severity: e.target.value }))}
@@ -480,35 +401,27 @@ export default function Results() {
               <option value="critical">Critical</option>
             </select>
           </div>
-
           {(filters.hazard_type || filters.severity || filters.search) && (
             <button onClick={() => setFilters({ hazard_type: '', severity: '', search: '' })}
               style={{ padding: '10px 16px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>
               Clear Filters
             </button>
           )}
-
           <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
             {['grid', 'map'].map(v => (
-              <button key={v} onClick={() => setView(v)} style={{
-                padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                background: view === v ? '#16a34a' : '#fff', color: view === v ? '#fff' : '#64748b',
-                border: view === v ? 'none' : '1.5px solid #e2e8f0',
-              }}>
+              <button key={v} onClick={() => setView(v)} style={{ padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', background: view === v ? '#16a34a' : '#fff', color: view === v ? '#fff' : '#64748b', border: view === v ? 'none' : '1.5px solid #e2e8f0' }}>
                 {v === 'grid' ? '⊞ Grid' : '🗺 Map'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Map View */}
         {view === 'map' && (
           <div style={{ height: '600px', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             {loading ? <p>Loading…</p> : <Map reports={filtered} zoom={areaFilter ? 10 : 5} center={areaFilter ? [areaFilter.lng, areaFilter.lat] : undefined} />}
           </div>
         )}
 
-        {/* Grid View */}
         {view === 'grid' && (
           loading ? (
             <p style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>Loading reports…</p>
@@ -535,19 +448,13 @@ export default function Results() {
                   : null
 
                 return (
-                  <div key={r.id} style={{
-                    background: '#fff', borderRadius: '12px',
-                    border: isResolved ? (isDisputed ? '1px solid #fecaca' : '1px solid #bbf7d0') : '1px solid #e2e8f0',
-                    overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s',
-                  }}
+                  <div key={r.id} style={{ background: '#fff', borderRadius: '12px', border: isResolved ? (isDisputed ? '1px solid #fecaca' : '1px solid #bbf7d0') : '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
                   >
-                    {r.image_url ? (
-                      <img src={r.image_url} alt="hazard" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '160px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>No Photo</div>
-                    )}
+                    {r.image_url
+                      ? <img src={r.image_url} alt="hazard" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '160px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>No Photo</div>}
 
                     {isResolved && (
                       <div style={{ background: isDisputed ? '#fef2f2' : '#f0fdf4', borderBottom: `1px solid ${isDisputed ? '#fecaca' : '#bbf7d0'}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -563,36 +470,26 @@ export default function Results() {
                     <div style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <strong style={{ fontSize: '16px', color: '#0f172a' }}>{r.hazard_type}</strong>
-                        <span style={{ background: s.bg, color: s.text, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>
-                          {r.severity}
-                        </span>
+                        <span style={{ background: s.bg, color: s.text, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>{r.severity}</span>
                       </div>
-
                       <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '12px', lineHeight: '1.5' }}>
                         {r.description?.slice(0, 100)}{r.description?.length > 100 ? '…' : ''}
                       </p>
-
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <span style={{ color: '#94a3b8', fontSize: '12px' }}>
                           {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {distLabel && (
-                            <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
-                              📍 {distLabel}
-                            </span>
-                          )}
+                          {distLabel && <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>📍 {distLabel}</span>}
                           {r.name && <span style={{ color: '#94a3b8', fontSize: '12px' }}>by {r.name}</span>}
                         </div>
                       </div>
-
                       {isResolved && (votes.confirmed > 0 || votes.disputed > 0) && (
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                           <span style={{ background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>👍 {votes.confirmed}</span>
                           <span style={{ background: '#fee2e2', color: '#dc2626', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>🚩 {votes.disputed}</span>
                         </div>
                       )}
-
                       {!isResolved && (
                         <button onClick={() => setResolveTarget(r)} style={{ width: '100%', padding: '9px', background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
                           ✅ Mark as Resolved
