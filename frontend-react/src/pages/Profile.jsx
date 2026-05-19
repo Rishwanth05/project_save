@@ -31,7 +31,15 @@ export default function Profile() {
   const [pwMsg, setPwMsg] = useState('')
   const [pwError, setPwError] = useState('')
 
-  // Emergency contacts (shared with Emergency page)
+  // FEAT-3 — Account deletion
+  const [deleteStep, setDeleteStep] = useState(null)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteOtp, setDeleteOtp] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteMsg, setDeleteMsg] = useState('')
+
+  // Emergency contacts
   const [contacts, setContacts] = useState(() => {
     try { return JSON.parse(localStorage.getItem('emergency_contacts')) || [] }
     catch { return [] }
@@ -93,6 +101,33 @@ export default function Profile() {
       setPwError('❌ ' + (err.response?.data?.message || 'Failed'))
     } finally {
       setPwLoading(false)
+    }
+  }
+
+  const handleRequestDeleteOTP = async () => {
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      await client.post('/auth/request-delete')
+      setDeleteStep('otp')
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || 'Failed to send code')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteOtp || deleteOtp.length !== 6) { setDeleteError('Enter the 6-digit code'); return }
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      await client.delete('/auth/delete-account', { data: { otp: deleteOtp, reason: deleteReason } })
+      localStorage.clear()
+      window.location.href = '/login'
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || 'Deletion failed')
+      setDeleteLoading(false)
     }
   }
 
@@ -225,7 +260,6 @@ export default function Profile() {
           <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '20px' }}>Profile Information</h2>
 
-            {/* Name */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Display Name</label>
               {editingName ? (
@@ -255,7 +289,6 @@ export default function Profile() {
               {nameMsg && <p style={{ fontSize: '13px', marginTop: '6px', color: nameMsg.startsWith('✅') ? '#16a34a' : '#dc2626' }}>{nameMsg}</p>}
             </div>
 
-            {/* Email */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</label>
               <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -264,7 +297,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Role */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Role</label>
               <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -274,7 +306,6 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Joined */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Since</label>
               <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -370,6 +401,93 @@ export default function Profile() {
             <button onClick={handleChangePassword} disabled={pwLoading} style={{ width: '100%', padding: '13px', background: pwLoading ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: pwLoading ? 'not-allowed' : 'pointer' }}>
               {pwLoading ? 'Changing…' : '🔒 Change Password'}
             </button>
+
+            {/* FEAT-3 — Account Deletion */}
+            <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: '1px solid #fee2e2' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626', marginBottom: '6px' }}>⚠️ Delete Account</h3>
+              <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>
+                Permanently delete your account. Your reports will be anonymized and kept for community safety.
+              </p>
+
+              {!deleteStep && (
+                <button
+                  onClick={() => setDeleteStep('confirm')}
+                  style={{ padding: '11px 20px', background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  Delete My Account
+                </button>
+              )}
+
+              {deleteStep === 'confirm' && (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
+                  <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '12px' }}>
+                    Are you sure? This cannot be undone.
+                  </p>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Reason for leaving (optional)</label>
+                    <select
+                      value={deleteReason}
+                      onChange={e => setDeleteReason(e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '14px', outline: 'none', background: '#fff' }}
+                    >
+                      <option value="">Select a reason…</option>
+                      <option value="privacy">Privacy concerns</option>
+                      <option value="not_useful">App not useful to me</option>
+                      <option value="too_many_emails">Too many emails</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => setDeleteStep(null)}
+                      style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleRequestDeleteOTP}
+                      disabled={deleteLoading}
+                      style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      {deleteLoading ? 'Sending…' : 'Send Confirmation Code'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 'otp' && (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
+                  <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>Enter the 6-digit code sent to your email</p>
+                  <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>This is your final confirmation step.</p>
+                  <input
+                    type="text"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={deleteOtp}
+                    onChange={e => setDeleteOtp(e.target.value.replace(/\D/g, ''))}
+                    style={{ width: '100%', padding: '12px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '22px', textAlign: 'center', letterSpacing: '8px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
+                  />
+                  {deleteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '10px' }}>{deleteError}</p>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => { setDeleteStep(null); setDeleteOtp(''); setDeleteError('') }}
+                      style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmDelete}
+                      disabled={deleteLoading}
+                      style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      {deleteLoading ? 'Deleting…' : 'Permanently Delete'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {deleteMsg && <p style={{ color: '#dc2626', fontSize: '13px', marginTop: '10px' }}>{deleteMsg}</p>}
+            </div>
           </div>
         )}
 
