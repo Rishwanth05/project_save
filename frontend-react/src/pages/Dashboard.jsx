@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Map from '../components/Map'
 import client from '../api/client'
 import NotificationCenter from '../components/NotificationCenter'
+import { io } from 'socket.io-client'
 
 const severityColor = {
   low: { bg: '#dcfce7', text: '#16a34a' },
@@ -19,6 +20,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [newReportFlash, setNewReportFlash] = useState(null)
+  const socketRef = useRef(null)
 
   // MAP4 — Radius filter
   const [radiusKm, setRadiusKm] = useState(null)
@@ -34,6 +37,33 @@ export default function Dashboard() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+  }, [])
+
+  // RT-2 — Socket.io real-time listener
+  useEffect(() => {
+    socketRef.current = io('http://localhost:5000', { withCredentials: true })
+
+    socketRef.current.on('connect', () => {
+      console.log('🔌 Socket connected')
+    })
+
+    socketRef.current.on('new-report', (report) => {
+      setReports(prev => {
+        // avoid duplicates
+        if (prev.find(r => r.id === report.id)) return prev
+        const updated = [report, ...prev].sort((a, b) =>
+          (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4)
+        )
+        return updated
+      })
+      // RT-2 — Flash notification for new report
+      setNewReportFlash(report)
+      setTimeout(() => setNewReportFlash(null), 5000)
+    })
+
+    return () => {
+      socketRef.current?.disconnect()
+    }
   }, [])
 
   const handleLogout = () => {
@@ -72,6 +102,27 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+
+      {/* RT-2 — New report flash toast */}
+      {newReportFlash && (
+        <div style={{
+          position: 'fixed', top: '80px', right: '24px', zIndex: 9999,
+          background: '#fff', borderRadius: '12px', padding: '14px 18px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1.5px solid #bbf7d0',
+          display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '320px',
+          animation: 'slideIn 0.3s ease',
+        }}>
+          <style>{`@keyframes slideIn { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:translateX(0) } }`}</style>
+          <div style={{ fontSize: '24px' }}>🚨</div>
+          <div>
+            <p style={{ fontWeight: '700', color: '#0f172a', fontSize: '13px', margin: '0 0 2px' }}>New report added</p>
+            <p style={{ color: '#64748b', fontSize: '12px', margin: 0 }}>
+              {newReportFlash.hazard_type} — {newReportFlash.severity}
+            </p>
+          </div>
+          <button onClick={() => setNewReportFlash(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px', marginLeft: 'auto' }}>×</button>
+        </div>
+      )}
 
       {/* Navbar */}
       <nav style={{

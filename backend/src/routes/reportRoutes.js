@@ -73,9 +73,20 @@ router.post("/create", upload.single("image"), async (req, res) => {
        latitude, longitude, location_method || "gps", image_url]
     );
 
+    const newReport = result.rows[0]
+
+    // RT-1 — Emit new report to all connected clients
+    const io = req.app.get('io')
+    if (io) {
+      io.emit('new-report', {
+        ...newReport,
+        name: req.body.reporter_name || 'Anonymous',
+      })
+    }
+
     res.status(201).json({
       message: "Report created ✅",
-      report: result.rows[0]
+      report: newReport
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
