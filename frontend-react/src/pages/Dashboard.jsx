@@ -20,6 +20,10 @@ export default function Dashboard() {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // MAP4 — Radius filter
+  const [radiusKm, setRadiusKm] = useState(null)
+  const [userLocation, setUserLocation] = useState(null)
+
   useEffect(() => {
     client.get('/reports/all')
       .then(({ data }) => {
@@ -35,6 +39,33 @@ export default function Dashboard() {
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  // MAP4 — Haversine distance
+  const getDistanceKm = (lat1, lng1, lat2, lng2) => {
+    const R = 6371
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
+  const filteredReports = radiusKm && userLocation
+    ? reports.filter(r =>
+        getDistanceKm(userLocation.lat, userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) <= radiusKm
+      )
+    : reports
+
+  const handleRadiusChange = (km) => {
+    setRadiusKm(km)
+    if (km && !userLocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
+        () => alert('Enable location access to use radius filter')
+      )
+    }
   }
 
   const initials = (user?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -60,71 +91,27 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => navigate('/report')}
-            style={{
-              background: '#16a34a', color: '#fff', border: 'none',
-              borderRadius: '8px', padding: '8px 16px',
-              fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
             + Report Hazard
           </button>
-          <button
-            onClick={() => navigate('/results')}
-            style={{
-              background: '#f0fdf4', color: '#16a34a',
-              border: '1.5px solid #16a34a', borderRadius: '8px',
-              padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => navigate('/results')} style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
             View Reports
           </button>
-          <button
-            onClick={() => navigate('/emergency')}
-            style={{
-              background: '#fef2f2', color: '#dc2626',
-              border: '1.5px solid #fecaca', borderRadius: '8px',
-              padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => navigate('/emergency')} style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
             🚨 Emergency
           </button>
-          <button
-            onClick={() => navigate('/leaderboard')}
-            style={{
-              background: '#faf5ff', color: '#7c3aed',
-              border: '1.5px solid #e9d5ff', borderRadius: '8px',
-              padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => navigate('/leaderboard')} style={{ background: '#faf5ff', color: '#7c3aed', border: '1.5px solid #e9d5ff', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
             🏆
           </button>
-          <button
-            onClick={() => navigate('/contact')}
-            style={{
-              background: 'transparent', color: '#64748b',
-              border: '1.5px solid #e2e8f0', borderRadius: '8px',
-              padding: '8px 16px', fontSize: '14px', cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => navigate('/contact')} style={{ background: 'transparent', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', cursor: 'pointer' }}>
             Contact
           </button>
 
-          {/* Notification bell */}
           <NotificationCenter />
 
-          {/* Profile avatar button */}
           <button
             onClick={() => navigate('/profile')}
-            style={{
-              width: '38px', height: '38px', borderRadius: '12px',
-              background: '#16a34a', color: '#fff', border: 'none',
-              fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
-              transition: 'transform 0.15s',
-            }}
+            style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#16a34a', color: '#fff', border: 'none', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(22,163,74,0.3)', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             title={`${user?.name} — View Profile`}
@@ -132,41 +119,57 @@ export default function Dashboard() {
             {initials}
           </button>
 
-          {/* Admin link — only shows if user is admin */}
           {user?.role === 'admin' && (
-            <button
-              onClick={() => navigate('/admin')}
-              style={{
-                background: '#1e293b', color: '#4ade80',
-                border: '1.5px solid #334155', borderRadius: '8px',
-                padding: '8px 16px', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-              }}
-            >
+            <button onClick={() => navigate('/admin')} style={{ background: '#1e293b', color: '#4ade80', border: '1.5px solid #334155', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>
               ⚙️ Admin
             </button>
           )}
 
-          <button
-            onClick={handleLogout}
-            style={{
-              background: 'transparent', color: '#64748b',
-              border: '1.5px solid #e2e8f0', borderRadius: '8px',
-              padding: '8px 16px', fontSize: '14px', cursor: 'pointer',
-            }}
-          >
+          <button onClick={handleLogout} style={{ background: 'transparent', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', cursor: 'pointer' }}>
             Logout
           </button>
         </div>
       </nav>
 
-      {/* Map */}
+      {/* Map — MAP1 clustering + MAP2 heatmap toggle */}
       <div style={{ height: '480px', width: '100%' }}>
         {loading ? (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
-            <p style={{ color: '#64748b' }}>Loading map…</p>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#16a34a', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <p style={{ color: '#64748b' }}>Loading map…</p>
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         ) : (
-          <Map reports={reports} zoom={5} />
+          <Map reports={filteredReports} zoom={5} showHeatmapToggle={true} />
+        )}
+      </div>
+
+      {/* MAP4 — Radius filter bar */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>📍 Show reports within:</span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[null, 1, 5, 10, 25].map(km => (
+            <button
+              key={km}
+              onClick={() => handleRadiusChange(km)}
+              style={{
+                padding: '6px 14px', borderRadius: '20px', fontSize: '13px',
+                fontWeight: '600', cursor: 'pointer', border: 'none',
+                background: radiusKm === km ? '#16a34a' : '#f1f5f9',
+                color: radiusKm === km ? '#fff' : '#64748b',
+                transition: 'all 0.15s',
+              }}
+            >
+              {km ? `${km}km` : 'All'}
+            </button>
+          ))}
+        </div>
+        {radiusKm && (
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            Showing {filteredReports.length} of {reports.length} reports
+          </span>
         )}
       </div>
 
@@ -174,59 +177,38 @@ export default function Dashboard() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
           {[
-            { label: 'Total Reports', value: reports.length, color: '#0f172a' },
-            { label: 'Critical', value: reports.filter(r => r.severity === 'critical').length, color: '#9333ea' },
-            { label: 'High', value: reports.filter(r => r.severity === 'high').length, color: '#dc2626' },
-            { label: 'Medium', value: reports.filter(r => r.severity === 'medium').length, color: '#ca8a04' },
+            { label: 'Total Reports', value: filteredReports.length, color: '#0f172a' },
+            { label: 'Critical', value: filteredReports.filter(r => r.severity === 'critical').length, color: '#9333ea' },
+            { label: 'High', value: filteredReports.filter(r => r.severity === 'high').length, color: '#dc2626' },
+            { label: 'Medium', value: filteredReports.filter(r => r.severity === 'medium').length, color: '#ca8a04' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{
-              background: '#fff', borderRadius: '12px', padding: '20px',
-              border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              textAlign: 'center',
-            }}>
+            <div key={label} style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', textAlign: 'center' }}>
               <p style={{ fontSize: '32px', fontWeight: '700', color }}>{value}</p>
               <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>{label}</p>
             </div>
           ))}
         </div>
 
-        {/* Reports */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>
-            Recent Reports <span style={{ color: '#64748b', fontWeight: '400' }}>({reports.length})</span>
+            Recent Reports <span style={{ color: '#64748b', fontWeight: '400' }}>({filteredReports.length})</span>
           </h2>
-          <button
-            onClick={() => navigate('/results')}
-            style={{
-              background: 'transparent', color: '#16a34a',
-              border: 'none', fontSize: '14px', fontWeight: '600',
-              cursor: 'pointer', textDecoration: 'underline',
-            }}
-          >
+          <button onClick={() => navigate('/results')} style={{ background: 'transparent', color: '#16a34a', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>
             View all →
           </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', paddingBottom: '32px' }}>
-          {reports.slice(0, 6).map(r => {
+          {filteredReports.slice(0, 6).map(r => {
             const s = severityColor[r.severity] || severityColor.low
             return (
-              <div key={r.id} style={{
-                background: '#fff', borderRadius: '12px',
-                border: '1px solid #e2e8f0', padding: '20px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                transition: 'box-shadow 0.2s',
-              }}
+              <div key={r.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <strong style={{ fontSize: '16px', color: '#0f172a' }}>{r.hazard_type}</strong>
-                  <span style={{
-                    background: s.bg, color: s.text,
-                    padding: '3px 10px', borderRadius: '20px',
-                    fontSize: '12px', fontWeight: '600', textTransform: 'capitalize',
-                  }}>
+                  <span style={{ background: s.bg, color: s.text, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>
                     {r.severity}
                   </span>
                 </div>

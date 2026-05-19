@@ -1,8 +1,56 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+
+    // PWA2 — Workbox service worker
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
+      manifest: false, // we have our own public/manifest.json
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            // Cache API report list with network-first strategy
+            urlPattern: /^https?:\/\/.*\/api\/reports\/all/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-reports-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Cache map tiles
+            urlPattern: /^https:\/\/basemaps\.cartocdn\.com\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            },
+          },
+          {
+            // Cache Nominatim geocoding
+            urlPattern: /^https:\/\/nominatim\.openstreetmap\.org\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'geocoding-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false, // disable in dev to avoid conflicts
+      },
+    }),
+  ],
+
   server: {
     port: 5173,
     proxy: {

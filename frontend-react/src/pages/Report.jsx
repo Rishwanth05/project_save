@@ -103,6 +103,27 @@ export default function Report() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [step, setStep] = useState(1)
 
+  // MAP3 — Reverse geocode coords to address
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      )
+      const data = await res.json()
+      if (data && data.address) {
+        setAddress(a => ({
+          ...a,
+          street: [data.address.house_number, data.address.road].filter(Boolean).join(' '),
+          city: data.address.city || data.address.town || data.address.village || '',
+          state: data.address.state || '',
+        }))
+      }
+    } catch {
+      // silently fail — coords are still set
+    }
+  }
+
+  // MAP3 — GPS with reverse geocode on success
   const handleGPS = () => {
     setGpsLoading(true)
     navigator.geolocation.getCurrentPosition(
@@ -113,6 +134,7 @@ export default function Report() {
           longitude: coords.longitude.toFixed(6),
           location_method: 'gps',
         }))
+        reverseGeocode(coords.latitude, coords.longitude)
         setGpsLoading(false)
       },
       () => {
@@ -161,7 +183,6 @@ export default function Report() {
     fd.append('latitude', form.latitude)
     fd.append('longitude', form.longitude)
     fd.append('location_method', form.location_method)
-    // FEAT-1 — send custom_description when Others is selected
     if (form.hazard_type === 'Others') {
       fd.append('custom_description', form.custom_description.trim())
     }
@@ -256,7 +277,6 @@ export default function Report() {
 
             <div style={{ marginBottom: '24px' }}>
               <label style={labelStyle}>Hazard Type</label>
-              {/* FEAT-1 — 11 category grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {HAZARD_TYPES.map(t => (
                   <button
@@ -277,7 +297,6 @@ export default function Report() {
                 ))}
               </div>
 
-              {/* FEAT-1 — custom_description field appears only for Others */}
               {form.hazard_type === 'Others' && (
                 <div style={{ marginTop: '12px' }}>
                   <label style={labelStyle}>
@@ -379,11 +398,17 @@ export default function Report() {
                 padding: '10px 20px', background: gpsLoading ? '#f1f5f9' : '#f0fdf4',
                 border: '1.5px solid #16a34a', borderRadius: '8px',
                 color: '#16a34a', fontWeight: '600', fontSize: '14px',
-                cursor: 'pointer', marginBottom: '20px', width: '100%',
-                justifyContent: 'center',
+                cursor: gpsLoading ? 'not-allowed' : 'pointer',
+                marginBottom: '20px', width: '100%', justifyContent: 'center',
               }}
             >
-              📍 {gpsLoading ? 'Getting location…' : 'Auto-detect My Location (GPS)'}
+              {gpsLoading ? (
+                <>
+                  <div style={{ width: '14px', height: '14px', border: '2px solid #16a34a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  Getting location…
+                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+                </>
+              ) : '📍 Auto-detect My Location (GPS)'}
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -467,7 +492,7 @@ export default function Report() {
                 color: '#16a34a', fontSize: '13px', marginBottom: '16px',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}>
-                ✅ Location found — drag the green pin to fine-tune the exact spot
+                ✅ Location set{address.street ? ` — ${address.street}, ${address.city}` : ` — ${form.latitude}, ${form.longitude}`} · drag pin to adjust
               </div>
             )}
 
