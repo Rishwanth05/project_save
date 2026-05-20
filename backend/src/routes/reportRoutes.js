@@ -16,6 +16,25 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// TRUST-1 — Recalculate trust score and badge tier
+async function updateTrustScore(pool, userId, delta) {
+  const result = await pool.query(
+    `UPDATE users 
+     SET trust_score = GREATEST(0, LEAST(1000, trust_score + $1))
+     WHERE id = $2
+     RETURNING trust_score`,
+    [delta, userId]
+  )
+  const score = result.rows[0]?.trust_score || 100
+  const tier =
+    score >= 800 ? 'Hero' :
+    score >= 600 ? 'Guardian' :
+    score >= 400 ? 'Trusted' :
+    score >= 200 ? 'Reporter' : 'Newcomer'
+  await pool.query(`UPDATE users SET badge_tier = $1 WHERE id = $2`, [tier, userId])
+  return { score, tier }
+}
+
 router.get("/test", (req, res) => {
   res.json({ message: "Reports route working ✅" });
 });
@@ -23,7 +42,7 @@ router.get("/test", (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT r.*, u.name
+      SELECT r.*, u.name, u.trust_score, u.badge_tier
       FROM reports r
       LEFT JOIN users u ON r.user_id = u.id
       ORDER BY r.created_at DESC
@@ -33,6 +52,21 @@ router.get("/all", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// TRUST-1 — Get user trust score
+router.get('/trust/:userId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT trust_score, badge_tier FROM users WHERE id = $1`,
+      [req.params.userId]
+    )
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: 'User not found' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 router.post("/create", upload.single("image"), async (req, res) => {
   try {
@@ -66,6 +100,9 @@ router.post("/create", upload.single("image"), async (req, res) => {
     );
 
     const newReport = result.rows[0]
+
+    // TRUST-1 — +10 points for submitting a report
+    await updateTrustScore(pool, user_id, 10)
 
     const io = req.app.get('io')
     if (io) {
@@ -101,6 +138,12 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
        VALUES ($1, 'resolved', 'active', 'user', $2)`,
       [report_id, proof_url]
     );
+
+    // TRUST-1 — +25 points for resolving a report
+    const reportOwner = await pool.query('SELECT user_id FROM reports WHERE id = $1', [report_id])
+    if (reportOwner.rows[0]?.user_id) {
+      await updateTrustScore(pool, reportOwner.rows[0].user_id, 25)
+    }
 
     res.json({ message: "Report resolved ✅", proofUrl: proof_url });
   } catch (err) {

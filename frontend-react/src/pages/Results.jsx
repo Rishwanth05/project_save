@@ -10,6 +10,37 @@ const severityColor = {
   critical: { bg: '#f3e8ff', text: '#9333ea' },
 }
 
+const badgeConfig = {
+  Hero:     { bg: '#fef9c3', color: '#854d0e', icon: '🏆' },
+  Guardian: { bg: '#dcfce7', color: '#15803d', icon: '🛡️' },
+  Trusted:  { bg: '#dbeafe', color: '#1d4ed8', icon: '✓' },
+  Reporter: { bg: '#f3e8ff', color: '#7c3aed', icon: '📝' },
+  Newcomer: { bg: '#f1f5f9', color: '#94a3b8', icon: '' },
+}
+
+function ReporterBadge({ name, badge_tier, trust_score }) {
+  if (!name) return null
+  const cfg = badgeConfig[badge_tier] || badgeConfig.Newcomer
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800', color: cfg.color, flexShrink: 0 }}>
+        {name[0].toUpperCase()}
+      </div>
+      <span style={{ color: '#64748b', fontSize: '12px', fontWeight: '500' }}>{name}</span>
+      {badge_tier && badge_tier !== 'Newcomer' && (
+        <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '20px', background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
+          {cfg.icon} {badge_tier}
+        </span>
+      )}
+      {trust_score != null && (
+        <span style={{ fontSize: '10px', color: '#7c3aed', fontWeight: '600', background: '#faf5ff', padding: '2px 6px', borderRadius: '20px', border: '1px solid #e9d5ff', whiteSpace: 'nowrap' }}>
+          ⭐ {trust_score}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function getDistanceMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -34,9 +65,7 @@ function ResolveModal({ report, onClose, onResolved }) {
     fd.append('report_id', report.id)
     fd.append('proof', proof)
     try {
-      await client.post('/reports/resolve', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await client.post('/reports/resolve', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       onResolved(report.id, preview)
       onClose()
     } catch (err) {
@@ -66,15 +95,7 @@ function ResolveModal({ report, onClose, onResolved }) {
           onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}>
           {preview
             ? <img src={preview} alt="proof" style={{ maxHeight: '140px', borderRadius: '8px', objectFit: 'contain' }} />
-            : (
-              <div>
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div>
-                {/* CAM1 — camera only label */}
-                <p style={{ color: '#64748b', fontWeight: '500', fontSize: '14px' }}>Take AFTER photo with camera</p>
-                <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Camera only — gallery blocked for verification</p>
-              </div>
-            )}
-          {/* CAM1 — capture="environment" forces rear camera, blocks gallery */}
+            : <div><div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div><p style={{ color: '#64748b', fontWeight: '500', fontSize: '14px' }}>Take AFTER photo with camera</p><p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Camera only — gallery blocked for verification</p></div>}
           <input id="proof-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
             onChange={e => { const file = e.target.files[0]; if (file) { setProof(file); setPreview(URL.createObjectURL(file)) } }} />
         </div>
@@ -213,18 +234,14 @@ function AreaFilterPanel({ onApply, onClear, active }) {
   const handleApply = async () => {
     if (mode === 'city') {
       if (!city.trim()) { setError('Enter a city name'); return }
-      setSearching(true)
-      setError('')
+      setSearching(true); setError('')
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`)
         const data = await res.json()
         if (!data.length) { setError('City not found. Try a different name.'); setSearching(false); return }
         onApply({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), radius, label: data[0].display_name.split(',')[0] })
-      } catch {
-        setError('Failed to find city. Try again.')
-      } finally {
-        setSearching(false)
-      }
+      } catch { setError('Failed to find city. Try again.') }
+      finally { setSearching(false) }
     } else {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => onApply({ lat: coords.latitude, lng: coords.longitude, radius, label: 'Your Location' }),
@@ -243,13 +260,8 @@ function AreaFilterPanel({ onApply, onClear, active }) {
             <p style={{ fontSize: '12px', color: '#64748b' }}>Show reports within a specific location</p>
           </div>
         </div>
-        {active && (
-          <button onClick={onClear} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-            ✕ Clear Area
-          </button>
-        )}
+        {active && <button onClick={onClear} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>✕ Clear Area</button>}
       </div>
-
       <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '4px', marginBottom: '16px', width: 'fit-content' }}>
         {[{ id: 'city', label: '🏙️ Search City' }, { id: 'radius', label: '📡 My Location' }].map(m => (
           <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: 'none', background: mode === m.id ? '#fff' : 'transparent', color: mode === m.id ? '#0f172a' : '#64748b', boxShadow: mode === m.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.15s' }}>
@@ -257,7 +269,6 @@ function AreaFilterPanel({ onApply, onClear, active }) {
           </button>
         ))}
       </div>
-
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
         {mode === 'city' && (
           <div style={{ flex: 2, minWidth: '200px' }}>
@@ -277,9 +288,7 @@ function AreaFilterPanel({ onApply, onClear, active }) {
         <div style={{ flex: 1, minWidth: '160px' }}>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Radius: <span style={{ color: '#16a34a' }}>{radius} miles</span></label>
           <input type="range" min={5} max={200} step={5} value={radius} onChange={e => setRadius(Number(e.target.value))} style={{ width: '100%', accentColor: '#16a34a' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-            <span>5 mi</span><span>200 mi</span>
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}><span>5 mi</span><span>200 mi</span></div>
         </div>
         <button onClick={handleApply} disabled={searching} style={{ padding: '10px 20px', background: searching ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: searching ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
           {searching ? 'Searching…' : '🔍 Apply'}
@@ -327,9 +336,7 @@ export default function Results() {
   }, [filters, reports, areaFilter])
 
   const handleResolved = (reportId, proofUrl) => {
-    setReports(prev => prev.map(r =>
-      r.id === reportId ? { ...r, status: 'resolved', proof_url: proofUrl } : r
-    ))
+    setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved', proof_url: proofUrl } : r))
   }
 
   const uniqueHazards = [...new Set(reports.map(r => r.hazard_type))]
@@ -370,9 +377,7 @@ export default function Results() {
           {areaFilter && <span style={{ fontSize: '13px', color: '#64748b' }}>Showing {filtered.length} of {reports.length} reports</span>}
         </div>
 
-        {showAreaPanel && (
-          <AreaFilterPanel active={!!areaFilter} onApply={(a) => { setAreaFilter(a); setShowAreaPanel(false) }} onClear={() => setAreaFilter(null)} />
-        )}
+        {showAreaPanel && <AreaFilterPanel active={!!areaFilter} onApply={(a) => { setAreaFilter(a); setShowAreaPanel(false) }} onClear={() => setAreaFilter(null)} />}
 
         <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 2, minWidth: '200px' }}>
@@ -458,12 +463,8 @@ export default function Results() {
 
                     {isResolved && (
                       <div style={{ background: isDisputed ? '#fef2f2' : '#f0fdf4', borderBottom: `1px solid ${isDisputed ? '#fecaca' : '#bbf7d0'}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ color: isDisputed ? '#dc2626' : '#16a34a', fontSize: '13px', fontWeight: '600' }}>
-                          {isDisputed ? '⚠️ Under Review' : '✅ Resolved'}
-                        </span>
-                        <button onClick={() => setViewProofTarget(r)} style={{ background: 'transparent', border: 'none', color: isDisputed ? '#dc2626' : '#16a34a', fontSize: '12px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>
-                          View Proof →
-                        </button>
+                        <span style={{ color: isDisputed ? '#dc2626' : '#16a34a', fontSize: '13px', fontWeight: '600' }}>{isDisputed ? '⚠️ Under Review' : '✅ Resolved'}</span>
+                        <button onClick={() => setViewProofTarget(r)} style={{ background: 'transparent', border: 'none', color: isDisputed ? '#dc2626' : '#16a34a', fontSize: '12px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>View Proof →</button>
                       </div>
                     )}
 
@@ -475,15 +476,19 @@ export default function Results() {
                       <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '12px', lineHeight: '1.5' }}>
                         {r.description?.slice(0, 100)}{r.description?.length > 100 ? '…' : ''}
                       </p>
+
+                      {/* Reporter + trust badge */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <span style={{ color: '#94a3b8', fontSize: '12px' }}>
                           {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {distLabel && <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>📍 {distLabel}</span>}
-                          {r.name && <span style={{ color: '#94a3b8', fontSize: '12px' }}>by {r.name}</span>}
-                        </div>
+                        {distLabel && <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>📍 {distLabel}</span>}
                       </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <ReporterBadge name={r.name} badge_tier={r.badge_tier} trust_score={r.trust_score} />
+                      </div>
+
                       {isResolved && (votes.confirmed > 0 || votes.disputed > 0) && (
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                           <span style={{ background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>👍 {votes.confirmed}</span>

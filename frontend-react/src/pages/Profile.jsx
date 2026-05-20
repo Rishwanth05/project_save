@@ -19,19 +19,16 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
 
-  // Edit name
   const [editingName, setEditingName] = useState(false)
   const [newName, setNewName] = useState('')
   const [nameLoading, setNameLoading] = useState(false)
   const [nameMsg, setNameMsg] = useState('')
 
-  // Change password
   const [pwForm, setPwForm] = useState({ old_password: '', new_password: '', confirm: '' })
   const [pwLoading, setPwLoading] = useState(false)
   const [pwMsg, setPwMsg] = useState('')
   const [pwError, setPwError] = useState('')
 
-  // FEAT-3 — Account deletion
   const [deleteStep, setDeleteStep] = useState(null)
   const [deleteReason, setDeleteReason] = useState('')
   const [deleteOtp, setDeleteOtp] = useState('')
@@ -39,7 +36,6 @@ export default function Profile() {
   const [deleteError, setDeleteError] = useState('')
   const [deleteMsg, setDeleteMsg] = useState('')
 
-  // Emergency contacts
   const [contacts, setContacts] = useState(() => {
     try { return JSON.parse(localStorage.getItem('emergency_contacts')) || [] }
     catch { return [] }
@@ -78,23 +74,13 @@ export default function Profile() {
   }
 
   const handleChangePassword = async () => {
-    setPwError('')
-    setPwMsg('')
-    if (!pwForm.old_password || !pwForm.new_password || !pwForm.confirm) {
-      setPwError('All fields are required'); return
-    }
-    if (pwForm.new_password !== pwForm.confirm) {
-      setPwError('New passwords do not match'); return
-    }
-    if (pwForm.new_password.length < 6) {
-      setPwError('Password must be at least 6 characters'); return
-    }
+    setPwError(''); setPwMsg('')
+    if (!pwForm.old_password || !pwForm.new_password || !pwForm.confirm) { setPwError('All fields are required'); return }
+    if (pwForm.new_password !== pwForm.confirm) { setPwError('New passwords do not match'); return }
+    if (pwForm.new_password.length < 6) { setPwError('Password must be at least 6 characters'); return }
     setPwLoading(true)
     try {
-      await client.put('/auth/change-password', {
-        old_password: pwForm.old_password,
-        new_password: pwForm.new_password,
-      })
+      await client.put('/auth/change-password', { old_password: pwForm.old_password, new_password: pwForm.new_password })
       setPwMsg('✅ Password changed successfully!')
       setPwForm({ old_password: '', new_password: '', confirm: '' })
     } catch (err) {
@@ -105,8 +91,7 @@ export default function Profile() {
   }
 
   const handleRequestDeleteOTP = async () => {
-    setDeleteLoading(true)
-    setDeleteError('')
+    setDeleteLoading(true); setDeleteError('')
     try {
       await client.post('/auth/request-delete')
       setDeleteStep('otp')
@@ -119,8 +104,7 @@ export default function Profile() {
 
   const handleConfirmDelete = async () => {
     if (!deleteOtp || deleteOtp.length !== 6) { setDeleteError('Enter the 6-digit code'); return }
-    setDeleteLoading(true)
-    setDeleteError('')
+    setDeleteLoading(true); setDeleteError('')
     try {
       await client.delete('/auth/delete-account', { data: { otp: deleteOtp, reason: deleteReason } })
       localStorage.clear()
@@ -176,13 +160,7 @@ export default function Profile() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
 
-      {/* Navbar */}
-      <nav style={{
-        background: '#fff', borderBottom: '1px solid #e2e8f0',
-        padding: '0 32px', height: '64px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100,
-      }}>
+      <nav style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
             <rect width="56" height="56" rx="16" fill="#16a34a"/>
@@ -196,34 +174,36 @@ export default function Profile() {
         </button>
       </nav>
 
-      {/* Hero */}
       <div style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', padding: '40px 24px 80px', color: '#fff' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div style={{
-            width: '80px', height: '80px', borderRadius: '24px',
-            background: 'rgba(255,255,255,0.2)', border: '3px solid rgba(255,255,255,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '28px', fontWeight: '800', color: '#fff', flexShrink: 0,
-          }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'rgba(255,255,255,0.2)', border: '3px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: '800', color: '#fff', flexShrink: 0 }}>
             {initials}
           </div>
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>{profile?.name}</h1>
             <p style={{ opacity: 0.85, fontSize: '15px' }}>{profile?.email}</p>
-            <p style={{ opacity: 0.7, fontSize: '13px', marginTop: '4px' }}>
-              Member since {new Date(profile?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+              <p style={{ opacity: 0.7, fontSize: '13px' }}>
+                Member since {new Date(profile?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </p>
+              {profile?.badge_tier && (
+                <span style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                  ⭐ {profile.badge_tier}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats strip */}
+      {/* Stats strip — TRUST-1 adds 4th card */}
       <div style={{ maxWidth: '900px', margin: '-40px auto 0', padding: '0 24px', position: 'relative', zIndex: 10 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
           {[
             { label: 'Total Reports', value: totalReports, color: '#0f172a', icon: '📋' },
             { label: 'Resolved', value: resolvedReports, color: '#16a34a', icon: '✅' },
             { label: 'Active', value: activeReports, color: '#dc2626', icon: '🔴' },
+            { label: 'Trust Score', value: profile?.trust_score || 100, color: '#7c3aed', icon: '⭐' },
           ].map(({ label, value, color, icon }) => (
             <div key={label} style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
               <div style={{ fontSize: '24px', marginBottom: '6px' }}>{icon}</div>
@@ -236,20 +216,9 @@ export default function Profile() {
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', borderRadius: '12px', padding: '4px', marginBottom: '24px' }}>
           {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                flex: 1, padding: '10px 8px', borderRadius: '8px', fontSize: '13px',
-                fontWeight: '600', cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                background: activeTab === t.id ? '#fff' : 'transparent',
-                color: activeTab === t.id ? '#0f172a' : '#64748b',
-                boxShadow: activeTab === t.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, padding: '10px 8px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', border: 'none', transition: 'all 0.15s', background: activeTab === t.id ? '#fff' : 'transparent', color: activeTab === t.id ? '#0f172a' : '#64748b', boxShadow: activeTab === t.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
               {t.label}
             </button>
           ))}
@@ -264,21 +233,9 @@ export default function Profile() {
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Display Name</label>
               {editingName ? (
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <input
-                    type="text"
-                    value={newName}
-                    onChange={e => setNewName(e.target.value)}
-                    style={{ ...inputStyle, flex: 1 }}
-                    onFocus={e => e.target.style.borderColor = '#16a34a'}
-                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                    autoFocus
-                  />
-                  <button onClick={handleUpdateName} disabled={nameLoading} style={{ padding: '11px 20px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                    {nameLoading ? 'Saving…' : 'Save'}
-                  </button>
-                  <button onClick={() => { setEditingName(false); setNewName(profile?.name) }} style={{ padding: '11px 16px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    Cancel
-                  </button>
+                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)} style={{ ...inputStyle, flex: 1 }} onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} autoFocus />
+                  <button onClick={handleUpdateName} disabled={nameLoading} style={{ padding: '11px 20px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{nameLoading ? 'Saving…' : 'Save'}</button>
+                  <button onClick={() => { setEditingName(false); setNewName(profile?.name) }} style={{ padding: '11px 16px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -299,19 +256,43 @@ export default function Profile() {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Role</label>
-              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>
-                  {profile?.role || 'user'}
-                </span>
+              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>{profile?.role || 'user'}</span>
               </div>
             </div>
 
-            <div>
+            <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Since</label>
               <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '15px', color: '#0f172a' }}>
                   {new Date(profile?.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
+              </div>
+            </div>
+
+            {/* TRUST-1 — Trust score + badge tier */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trust Score & Badge</label>
+              <div style={{ padding: '16px', background: '#faf5ff', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ background: '#7c3aed', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '700' }}>
+                    {profile?.badge_tier || 'Newcomer'}
+                  </span>
+                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#7c3aed' }}>
+                    {profile?.trust_score || 100} pts
+                  </span>
+                </div>
+                <div style={{ height: '8px', background: '#e9d5ff', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min((profile?.trust_score || 100) / 10, 100)}%`, background: '#7c3aed', borderRadius: '4px', transition: 'width 0.5s ease' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                  {['Newcomer', 'Reporter', 'Trusted', 'Guardian', 'Hero'].map(t => (
+                    <span key={t} style={{ fontSize: '10px', color: profile?.badge_tier === t ? '#7c3aed' : '#94a3b8', fontWeight: profile?.badge_tier === t ? '700' : '400' }}>{t}</span>
+                  ))}
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '11px', marginTop: '10px' }}>
+                  +10 pts per report · +25 pts per resolution · -20 pts if rejected
+                </p>
               </div>
             </div>
           </div>
@@ -322,9 +303,7 @@ export default function Profile() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>My Reports ({myReports.length})</h2>
-              <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                + New Report
-              </button>
+              <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ New Report</button>
             </div>
 
             {myReports.length === 0 ? (
@@ -332,9 +311,7 @@ export default function Profile() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
                 <p style={{ fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>No reports yet</p>
                 <p style={{ color: '#64748b', fontSize: '14px', marginTop: '8px', marginBottom: '20px' }}>Start contributing to community safety</p>
-                <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                  Report First Hazard
-                </button>
+                <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Report First Hazard</button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -343,11 +320,9 @@ export default function Profile() {
                   const isResolved = r.status === 'resolved'
                   return (
                     <div key={r.id} style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', border: isResolved ? '1px solid #bbf7d0' : '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      {r.image_url ? (
-                        <img src={r.image_url} alt="hazard" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0 }} />
-                      ) : (
-                        <div style={{ width: '60px', height: '60px', background: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>🚧</div>
-                      )}
+                      {r.image_url
+                        ? <img src={r.image_url} alt="hazard" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0 }} />
+                        : <div style={{ width: '60px', height: '60px', background: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>🚧</div>}
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <strong style={{ fontSize: '15px', color: '#0f172a' }}>{r.hazard_type}</strong>
@@ -357,11 +332,9 @@ export default function Profile() {
                         <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '4px' }}>{r.description?.slice(0, 80)}{r.description?.length > 80 ? '…' : ''}</p>
                         <p style={{ color: '#94a3b8', fontSize: '12px' }}>{new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <span style={{ fontSize: '12px', color: isResolved ? '#16a34a' : '#f59e0b', fontWeight: '600', background: isResolved ? '#f0fdf4' : '#fffbeb', padding: '4px 10px', borderRadius: '20px', border: `1px solid ${isResolved ? '#bbf7d0' : '#fde68a'}` }}>
-                          {isResolved ? 'Resolved' : 'Active'}
-                        </span>
-                      </div>
+                      <span style={{ fontSize: '12px', color: isResolved ? '#16a34a' : '#f59e0b', fontWeight: '600', background: isResolved ? '#f0fdf4' : '#fffbeb', padding: '4px 10px', borderRadius: '20px', border: `1px solid ${isResolved ? '#bbf7d0' : '#fde68a'}`, flexShrink: 0 }}>
+                        {isResolved ? 'Resolved' : 'Active'}
+                      </span>
                     </div>
                   )
                 })}
@@ -383,15 +356,9 @@ export default function Profile() {
             ].map(f => (
               <div key={f.key} style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>{f.label}</label>
-                <input
-                  type="password"
-                  placeholder={f.placeholder}
-                  value={pwForm[f.key]}
-                  onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = '#16a34a'}
-                  onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                />
+                <input type="password" placeholder={f.placeholder} value={pwForm[f.key]}
+                  onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
               </div>
             ))}
 
@@ -405,31 +372,20 @@ export default function Profile() {
             {/* FEAT-3 — Account Deletion */}
             <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: '1px solid #fee2e2' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626', marginBottom: '6px' }}>⚠️ Delete Account</h3>
-              <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>
-                Permanently delete your account. Your reports will be anonymized and kept for community safety.
-              </p>
+              <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>Permanently delete your account. Your reports will be anonymized and kept for community safety.</p>
 
               {!deleteStep && (
-                <button
-                  onClick={() => setDeleteStep('confirm')}
-                  style={{ padding: '11px 20px', background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-                >
+                <button onClick={() => setDeleteStep('confirm')} style={{ padding: '11px 20px', background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                   Delete My Account
                 </button>
               )}
 
               {deleteStep === 'confirm' && (
                 <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
-                  <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '12px' }}>
-                    Are you sure? This cannot be undone.
-                  </p>
+                  <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '12px' }}>Are you sure? This cannot be undone.</p>
                   <div style={{ marginBottom: '12px' }}>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Reason for leaving (optional)</label>
-                    <select
-                      value={deleteReason}
-                      onChange={e => setDeleteReason(e.target.value)}
-                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '14px', outline: 'none', background: '#fff' }}
-                    >
+                    <select value={deleteReason} onChange={e => setDeleteReason(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '14px', outline: 'none', background: '#fff' }}>
                       <option value="">Select a reason…</option>
                       <option value="privacy">Privacy concerns</option>
                       <option value="not_useful">App not useful to me</option>
@@ -438,17 +394,8 @@ export default function Profile() {
                     </select>
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => setDeleteStep(null)}
-                      style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleRequestDeleteOTP}
-                      disabled={deleteLoading}
-                      style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => setDeleteStep(null)} style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={handleRequestDeleteOTP} disabled={deleteLoading} style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                       {deleteLoading ? 'Sending…' : 'Send Confirmation Code'}
                     </button>
                   </div>
@@ -459,27 +406,13 @@ export default function Profile() {
                 <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
                   <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>Enter the 6-digit code sent to your email</p>
                   <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>This is your final confirmation step.</p>
-                  <input
-                    type="text"
-                    placeholder="000000"
-                    maxLength={6}
-                    value={deleteOtp}
+                  <input type="text" placeholder="000000" maxLength={6} value={deleteOtp}
                     onChange={e => setDeleteOtp(e.target.value.replace(/\D/g, ''))}
-                    style={{ width: '100%', padding: '12px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '22px', textAlign: 'center', letterSpacing: '8px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }}
-                  />
+                    style={{ width: '100%', padding: '12px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '22px', textAlign: 'center', letterSpacing: '8px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', marginBottom: '12px' }} />
                   {deleteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '10px' }}>{deleteError}</p>}
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => { setDeleteStep(null); setDeleteOtp(''); setDeleteError('') }}
-                      style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmDelete}
-                      disabled={deleteLoading}
-                      style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => { setDeleteStep(null); setDeleteOtp(''); setDeleteError('') }} style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={handleConfirmDelete} disabled={deleteLoading} style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                       {deleteLoading ? 'Deleting…' : 'Permanently Delete'}
                     </button>
                   </div>
@@ -500,12 +433,8 @@ export default function Profile() {
                 <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>These are shared with the Emergency page</p>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => navigate('/emergency')} style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
-                  🚨 Emergency Page
-                </button>
-                <button onClick={() => setShowAddContact(true)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                  + Add Contact
-                </button>
+                <button onClick={() => navigate('/emergency')} style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>🚨 Emergency Page</button>
+                <button onClick={() => setShowAddContact(true)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ Add Contact</button>
               </div>
             </div>
 
@@ -521,10 +450,8 @@ export default function Profile() {
                     <div key={f.key}>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{f.label}</label>
                       <input type={f.type} placeholder={f.placeholder} value={newContact[f.key]}
-                        onChange={e => setNewContact(p => ({ ...p, [f.key]: e.target.value }))}
-                        style={inputStyle}
-                        onFocus={e => e.target.style.borderColor = '#16a34a'}
-                        onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+                        onChange={e => setNewContact(p => ({ ...p, [f.key]: e.target.value }))} style={inputStyle}
+                        onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
                     </div>
                   ))}
                 </div>
@@ -540,9 +467,7 @@ export default function Profile() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>👥</div>
                 <p style={{ fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>No emergency contacts yet</p>
                 <p style={{ color: '#64748b', fontSize: '14px', marginTop: '8px', marginBottom: '20px' }}>Add people to reach in case of emergency</p>
-                <button onClick={() => setShowAddContact(true)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                  + Add First Contact
-                </button>
+                <button onClick={() => setShowAddContact(true)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ Add First Contact</button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

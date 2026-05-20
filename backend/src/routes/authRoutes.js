@@ -28,7 +28,6 @@ router.post('/signup', async (req, res) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: 'All fields required' });
 
-    // SEC3 — sanitize name
     const clean_name = xss(name.trim());
 
     const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -95,10 +94,7 @@ router.post('/verify-email', async (req, res) => {
       );
       const attemptsLeft = 5 - updated.rows[0].attempts;
       if (attemptsLeft <= 0) {
-        await pool.query(
-          `DELETE FROM otp_codes WHERE email = $1 AND purpose = 'verify'`,
-          [email]
-        );
+        await pool.query(`DELETE FROM otp_codes WHERE email = $1 AND purpose = 'verify'`, [email]);
         return res.status(429).json({ message: 'Too many incorrect attempts. Request a new OTP.' });
       }
       return res.status(400).json({
@@ -113,7 +109,8 @@ router.post('/verify-email', async (req, res) => {
     await pool.query(`DELETE FROM otp_codes WHERE email = $1 AND purpose = 'verify'`, [email]);
 
     const user = await pool.query(
-      `SELECT id, name, email, role FROM users WHERE email = $1`,
+      `SELECT id, name, email, role, created_at, is_verified, trust_score, badge_tier
+       FROM users WHERE email = $1`,
       [email]
     );
 
@@ -156,24 +153,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (!match) {
       const updated = await pool.query(
-        `UPDATE users
-         SET failed_login_attempts = failed_login_attempts + 1
-         WHERE email = $1
-         RETURNING failed_login_attempts`,
+        `UPDATE users SET failed_login_attempts = failed_login_attempts + 1
+         WHERE email = $1 RETURNING failed_login_attempts`,
         [email]
       );
       const attempts = updated.rows[0].failed_login_attempts;
 
       if (attempts >= 5) {
         const lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
-        await pool.query(
-          `UPDATE users SET locked_until = $1 WHERE email = $2`,
-          [lockedUntil, email]
-        );
-        try {
-          await sendOTPEmail(email, null, 'lockout');
-        } catch (_) {}
-
+        await pool.query(`UPDATE users SET locked_until = $1 WHERE email = $2`, [lockedUntil, email]);
+        try { await sendOTPEmail(email, null, 'lockout') } catch (_) {}
         return res.status(423).json({
           message: 'Account locked for 30 minutes due to too many failed attempts. Check your email.',
         });
@@ -240,10 +229,7 @@ router.post('/verify-login', async (req, res) => {
       );
       const attemptsLeft = 5 - updated.rows[0].attempts;
       if (attemptsLeft <= 0) {
-        await pool.query(
-          `DELETE FROM otp_codes WHERE email = $1 AND purpose = 'login'`,
-          [email]
-        );
+        await pool.query(`DELETE FROM otp_codes WHERE email = $1 AND purpose = 'login'`, [email]);
         return res.status(429).json({ message: 'Too many incorrect attempts. Request a new OTP.' });
       }
       return res.status(400).json({
@@ -254,7 +240,8 @@ router.post('/verify-login', async (req, res) => {
     await pool.query(`DELETE FROM otp_codes WHERE email = $1 AND purpose = 'login'`, [email]);
 
     const user = await pool.query(
-      `SELECT id, name, email, role FROM users WHERE email = $1`,
+      `SELECT id, name, email, role, created_at, is_verified, trust_score, badge_tier
+       FROM users WHERE email = $1`,
       [email]
     );
 
@@ -299,7 +286,8 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
 router.get('/me', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, created_at, is_verified FROM users WHERE id = $1',
+      `SELECT id, name, email, role, created_at, is_verified, trust_score, badge_tier
+       FROM users WHERE id = $1`,
       [req.user.id]
     );
     res.json(result.rows[0]);
@@ -328,7 +316,6 @@ router.put('/update-name', verifyToken, async (req, res) => {
     if (!name || !name.trim())
       return res.status(400).json({ message: 'Name is required' });
 
-    // SEC3 — sanitize name
     const clean_name = xss(name.trim());
 
     const result = await pool.query(
@@ -422,10 +409,7 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
       );
       const attemptsLeft = 5 - updated.rows[0].attempts;
       if (attemptsLeft <= 0) {
-        await pool.query(
-          `DELETE FROM otp_codes WHERE email = $1 AND purpose = 'delete'`,
-          [email]
-        );
+        await pool.query(`DELETE FROM otp_codes WHERE email = $1 AND purpose = 'delete'`, [email]);
         return res.status(429).json({ message: 'Too many incorrect attempts. Request a new OTP.' });
       }
       return res.status(400).json({
@@ -458,28 +442,19 @@ router.post('/forgot-password', async (req, res) => {
     if (!email) return res.status(400).json({ message: 'Email required' });
 
     const result = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    // Always return success even if email not found (prevents email enumeration)
     if (result.rows.length === 0)
       return res.json({ message: 'If that email exists, a reset link has been sent.' });
 
     const token = require('crypto').randomBytes(32).toString('hex');
-    const expires_at = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    const expires_at = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Invalidate any existing tokens for this email
+    await pool.query(`UPDATE password_reset_tokens SET used = true WHERE email = $1`, [email]);
     await pool.query(
-      `UPDATE password_reset_tokens SET used = true WHERE email = $1`,
-      [email]
-    );
-
-    await pool.query(
-      `INSERT INTO password_reset_tokens (email, token, expires_at)
-       VALUES ($1, $2, $3)`,
+      `INSERT INTO password_reset_tokens (email, token, expires_at) VALUES ($1, $2, $3)`,
       [email, token, expires_at]
     );
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-    await pool.query('SELECT 1'); // keep pool warm
     const { sendResetEmail } = require('../utils/email');
     await sendResetEmail(email, resetLink);
 
@@ -517,10 +492,8 @@ router.post('/reset-password', async (req, res) => {
 
     const userId = user.rows[0].id;
 
-    // Check last 5 passwords
     const history = await pool.query(
-      `SELECT password_hash FROM password_history
-       WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`,
+      `SELECT password_hash FROM password_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`,
       [userId]
     );
 
@@ -531,23 +504,9 @@ router.post('/reset-password', async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(new_password, 12);
-
-    // Update password
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [password_hash, userId]);
-
-    // Save to history
-    await pool.query(
-      'INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)',
-      [userId, password_hash]
-    );
-
-    // Mark token used
-    await pool.query(
-      'UPDATE password_reset_tokens SET used = true WHERE token = $1',
-      [token]
-    );
-
-    // Invalidate all sessions by clearing any OTP codes
+    await pool.query('INSERT INTO password_history (user_id, password_hash) VALUES ($1, $2)', [userId, password_hash]);
+    await pool.query('UPDATE password_reset_tokens SET used = true WHERE token = $1', [token]);
     await pool.query('DELETE FROM otp_codes WHERE email = $1', [record.email]);
 
     res.json({ message: 'Password reset successful. Please log in.' });
@@ -555,4 +514,5 @@ router.post('/reset-password', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 module.exports = router;
