@@ -14,18 +14,24 @@ import Admin from './pages/Admin'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import NotFound from './pages/NotFound'
+import Landing from './pages/Landing'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import InstallPrompt from './components/InstallPrompt'
+import CookieBanner from './components/CookieBanner'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/report" element={<ProtectedRoute><Report /></ProtectedRoute>} />
           <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
@@ -37,6 +43,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <InstallPrompt />
+        <CookieBanner />
       </BrowserRouter>
     </AuthProvider>
   )

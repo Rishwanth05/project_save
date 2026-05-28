@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const Sentry = require('@sentry/node');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
@@ -12,6 +13,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 
@@ -76,6 +78,13 @@ app.use('/api/contact', csrfProtection, contactRoutes);
 app.use('/api/badges', csrfProtection, badgeRoutes);
 app.use('/api/admin', csrfProtection, adminRoutes);
 app.use('/api/notifications', csrfProtection, notificationRoutes);
+// LAND-2 — Public stats, no CSRF/auth needed (must be before 404 handler)
+app.use('/api/v1/public', publicRoutes);
+
+// MON1 — Sentry error handler (must be before other error middleware)
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN')

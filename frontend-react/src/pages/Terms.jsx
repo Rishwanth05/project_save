@@ -1,0 +1,232 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+const SECTIONS = [
+  { id: 'acceptance', title: 'Acceptance of Terms' },
+  { id: 'service', title: 'Description of Service' },
+  { id: 'accounts', title: 'User Accounts' },
+  { id: 'content', title: 'User-Generated Content' },
+  { id: 'prohibited', title: 'Prohibited Uses' },
+  { id: 'municipality', title: 'Municipality Accounts' },
+  { id: 'payments', title: 'Payments & Subscriptions' },
+  { id: 'liability', title: 'Limitation of Liability' },
+  { id: 'termination', title: 'Termination' },
+  { id: 'governing', title: 'Governing Law' },
+  { id: 'contact', title: 'Contact' },
+]
+
+export default function Terms() {
+  const navigate = useNavigate()
+  const [active, setActive] = useState('acceptance')
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id) }),
+      { rootMargin: '-20% 0px -70% 0px' }
+    )
+    SECTIONS.forEach(s => {
+      const el = document.getElementById(s.id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0f1e', color: '#f1f5f9', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+
+      {/* Nav */}
+      <div style={{ background: 'rgba(10,15,30,0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+        <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#f1f5f9', fontFamily: 'inherit', padding: 0 }}>
+          <svg width="22" height="22" viewBox="0 0 56 56" fill="none" style={{ flexShrink: 0 }}>
+            <rect width="56" height="56" rx="12" fill="#16a34a"/>
+            <path d="M28 10L14 16V28C14 36.4 20.2 44.2 28 46C35.8 44.2 42 36.4 42 28V16L28 10Z" fill="white"/>
+          </svg>
+          <span style={{ fontWeight: '700', fontSize: '15px' }}>Project SAVE</span>
+        </button>
+        <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '7px 14px', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>
+      </div>
+
+      <div style={{ maxWidth: '1060px', margin: '0 auto', padding: '48px 24px', display: 'flex', gap: '48px', alignItems: 'flex-start' }}>
+
+        {/* Sticky sidebar */}
+        <aside style={{ width: '200px', flexShrink: 0, position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <p style={{ color: '#475569', fontSize: '11px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>Contents</p>
+          {SECTIONS.map(s => (
+            <a key={s.id} href={`#${s.id}`}
+              onClick={e => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+              style={{
+                display: 'block', padding: '7px 12px', borderRadius: '8px', fontSize: '13px',
+                fontWeight: active === s.id ? '600' : '400',
+                color: active === s.id ? '#4ade80' : '#64748b',
+                background: active === s.id ? 'rgba(22,163,74,0.1)' : 'transparent',
+                borderLeft: `2px solid ${active === s.id ? '#16a34a' : 'transparent'}`,
+                textDecoration: 'none', transition: 'all 150ms ease', cursor: 'pointer',
+              }}>
+              {s.title}
+            </a>
+          ))}
+        </aside>
+
+        {/* Content */}
+        <main style={{ flex: 1, maxWidth: '720px' }}>
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ display: 'inline-block', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)', color: '#4ade80', fontSize: '12px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', padding: '4px 14px', borderRadius: '999px', marginBottom: '16px' }}>Legal</div>
+            <h1 style={{ fontSize: '38px', fontWeight: '900', letterSpacing: '-1px', marginBottom: '10px' }}>Terms of Service</h1>
+            <p style={{ color: '#64748b', fontSize: '14px' }}>Last updated: 28 May 2026 · Effective: 28 May 2026</p>
+          </div>
+
+          <Section id="acceptance" title="Acceptance of Terms">
+            <p>By creating an account or using Project SAVE ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service.</p>
+            <p>These Terms constitute a legally binding agreement between you and Project SAVE. We reserve the right to update these Terms at any time. Continued use after changes constitutes acceptance.</p>
+          </Section>
+
+          <Section id="service" title="Description of Service">
+            <p>Project SAVE is a community hazard reporting platform that allows residents to:</p>
+            <ul>
+              <li>Submit geo-tagged reports of public safety hazards</li>
+              <li>View hazard reports on an interactive map</li>
+              <li>Track the resolution status of submitted reports</li>
+              <li>Receive notifications about hazards in their area</li>
+            </ul>
+            <p>The Service is provided "as is." We do not guarantee reports will be acted upon by any government authority. Project SAVE is not a substitute for emergency services — call 911 for life-threatening emergencies.</p>
+            <Callout>🚨 In case of an emergency, call 911 immediately. Do not submit a report as a substitute for emergency services.</Callout>
+          </Section>
+
+          <Section id="accounts" title="User Accounts">
+            <p>To use most features of the Service, you must register for an account. By registering, you agree to:</p>
+            <ul>
+              <li>Provide accurate, complete, and current information</li>
+              <li>Maintain the security of your password — never share it with others</li>
+              <li>Notify us immediately of any unauthorised account access</li>
+              <li>Accept responsibility for all activity that occurs under your account</li>
+            </ul>
+            <p>You must be at least 13 years old to create an account. Accounts are personal and non-transferable. We reserve the right to suspend or delete accounts that violate these Terms.</p>
+          </Section>
+
+          <Section id="content" title="User-Generated Content">
+            <p>When you submit a report, photo, or any other content to the Service ("User Content"), you:</p>
+            <ul>
+              <li>Retain ownership of your content</li>
+              <li>Grant Project SAVE a worldwide, non-exclusive, royalty-free licence to store, display, and distribute your content as part of operating the Service</li>
+              <li>Confirm the content is accurate to the best of your knowledge</li>
+              <li>Accept that report locations and hazard descriptions are visible to other authenticated users and municipality partners</li>
+            </ul>
+            <SubHeading>Content standards</SubHeading>
+            <p>All submitted content must be:</p>
+            <ul>
+              <li>Truthful and not misleading</li>
+              <li>Related to a genuine public safety hazard</li>
+              <li>Free of personal attacks, hate speech, or discriminatory content</li>
+              <li>Free of content that violates any applicable law</li>
+            </ul>
+          </Section>
+
+          <Section id="prohibited" title="Prohibited Uses">
+            <p>You may not use the Service to:</p>
+            <ul>
+              <li>Submit false, fabricated, or malicious hazard reports</li>
+              <li>Harass, threaten, or intimidate other users</li>
+              <li>Upload content that infringes intellectual property rights</li>
+              <li>Attempt to gain unauthorised access to the Service or its infrastructure</li>
+              <li>Use automated bots, scrapers, or scripts without prior written consent</li>
+              <li>Circumvent security features, rate limits, or access controls</li>
+              <li>Impersonate government officials, municipality workers, or Project SAVE staff</li>
+              <li>Upload content containing malware, viruses, or malicious code</li>
+            </ul>
+            <p>Violations may result in immediate account termination and, where applicable, reporting to law enforcement.</p>
+          </Section>
+
+          <Section id="municipality" title="Municipality Accounts">
+            <p>Municipality accounts are subject to additional terms agreed upon at time of subscription. Municipality account holders:</p>
+            <ul>
+              <li>May only access reports within their designated geographic jurisdiction</li>
+              <li>Must use the Service only for legitimate public works and safety purposes</li>
+              <li>Are responsible for all actions taken by authorised staff under their account</li>
+              <li>May not resell access to the Service or export report data for commercial use</li>
+            </ul>
+            <p>Municipality subscriptions are billed annually or monthly. Cancellation takes effect at the end of the current billing period.</p>
+          </Section>
+
+          <Section id="payments" title="Payments & Subscriptions">
+            <p>Pro and Municipality plans are paid subscriptions processed through Stripe. By subscribing, you agree to:</p>
+            <ul>
+              <li>Pay all fees associated with your chosen plan</li>
+              <li>Provide accurate billing information</li>
+              <li>Authorise recurring charges until cancellation</li>
+            </ul>
+            <SubHeading>Refunds</SubHeading>
+            <p>We offer a 7-day money-back guarantee for new Pro subscriptions. Municipality plan refunds are handled on a case-by-case basis. Contact billing@saveapp.digital within 7 days of purchase.</p>
+            <SubHeading>Free tier</SubHeading>
+            <p>The Citizen (free) tier is available indefinitely at no charge. We reserve the right to introduce usage limits on the free tier with 30 days' notice.</p>
+          </Section>
+
+          <Section id="liability" title="Limitation of Liability">
+            <p>To the maximum extent permitted by law, Project SAVE and its operators shall not be liable for:</p>
+            <ul>
+              <li>Indirect, incidental, special, or consequential damages</li>
+              <li>Loss of profits, data, goodwill, or other intangible losses</li>
+              <li>Any harm arising from your reliance on report accuracy</li>
+              <li>Failure of government authorities to act on submitted reports</li>
+              <li>Service interruptions, data loss, or security breaches beyond our reasonable control</li>
+            </ul>
+            <p>Our total cumulative liability for any claim arising out of your use of the Service shall not exceed the greater of $100 USD or the total amount you have paid to us in the 12 months preceding the claim.</p>
+            <p>Project SAVE does not guarantee the accuracy, completeness, or timeliness of any report. The Service is informational only.</p>
+          </Section>
+
+          <Section id="termination" title="Termination">
+            <p>You may delete your account at any time via Profile → Delete Account. We may terminate or suspend your account immediately, without prior notice, if we determine you have violated these Terms.</p>
+            <p>Upon termination, your right to use the Service ceases immediately. We may retain anonymised report data (with your personal identifiers removed) as permitted by our Privacy Policy.</p>
+          </Section>
+
+          <Section id="governing" title="Governing Law">
+            <p>These Terms shall be governed by and construed in accordance with the laws of the United States. Any disputes shall be resolved through binding arbitration under the American Arbitration Association rules, except that either party may seek injunctive relief in a court of competent jurisdiction.</p>
+            <p>If any provision of these Terms is found to be unenforceable, the remaining provisions shall continue in full force.</p>
+          </Section>
+
+          <Section id="contact" title="Contact">
+            <p>For questions about these Terms:</p>
+            <ul>
+              <li><strong>Email:</strong> legal@saveapp.digital</li>
+              <li><strong>Billing enquiries:</strong> billing@saveapp.digital</li>
+              <li><strong>Response time:</strong> Within 5 business days</li>
+            </ul>
+          </Section>
+
+          <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate('/privacy')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 18px', color: '#94a3b8', fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Privacy Policy →
+            </button>
+            <button onClick={() => navigate('/')} style={{ background: '#16a34a', border: 'none', borderRadius: '8px', padding: '10px 18px', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Back to Home
+            </button>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function Section({ id, title, children }) {
+  return (
+    <section id={id} style={{ marginBottom: '48px', scrollMarginTop: '80px' }}>
+      <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '16px', color: '#f1f5f9', letterSpacing: '-0.3px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {title}
+      </h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#94a3b8', fontSize: '15px', lineHeight: '1.75' }}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function SubHeading({ children }) {
+  return <p style={{ color: '#f1f5f9', fontWeight: '600', fontSize: '14px', marginTop: '6px', marginBottom: '-6px' }}>{children}</p>
+}
+
+function Callout({ children }) {
+  return (
+    <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', padding: '14px 16px', color: '#fca5a5', fontSize: '14px' }}>
+      {children}
+    </div>
+  )
+}

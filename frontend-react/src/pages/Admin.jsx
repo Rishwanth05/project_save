@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
+import {
+  ResponsiveContainer, LineChart, Line, BarChart, Bar,
+  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts'
 
 const STATUS_OPTIONS = ['active','under_review','under_construction','being_monitored','partially_fixed','resolved']
 const STATUS_COLORS = { active:'#dc2626', under_review:'#7c3aed', under_construction:'#d97706', being_monitored:'#0891b2', partially_fixed:'#0284c7', resolved:'#16a34a' }
@@ -21,6 +25,7 @@ export default function Admin() {
   const [reportFilter, setReportFilter] = useState({ status: '', severity: '' })
   const [broadcast, setBroadcast] = useState({ title: '', message: '', severity: 'medium' })
   const [broadcastMsg, setBroadcastMsg] = useState('')
+  const [analytics, setAnalytics] = useState(null)
 
   useEffect(() => {
     if (user?.role !== 'admin') { navigate('/dashboard'); return }
@@ -30,7 +35,15 @@ export default function Admin() {
   useEffect(() => {
     if (tab === 'users') loadUsers()
     if (tab === 'reports') loadReports()
+    if (tab === 'analytics') loadAnalytics()
   }, [tab, reportFilter])
+
+  const loadAnalytics = async () => {
+    try {
+      const { data } = await client.get('/admin/analytics')
+      setAnalytics(data)
+    } catch { /* silently fail */ }
+  }
 
   const loadStats = async () => {
     try {
@@ -93,7 +106,7 @@ export default function Admin() {
 
   if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0f172a', color:'#fff', fontSize:'18px' }}>Loading admin panel…</div>
 
-  const navTabs = ['overview','users','reports','broadcast']
+  const navTabs = ['overview','analytics','users','reports','broadcast']
 
   return (
     <div style={{ minHeight:'100vh', background:'#0f172a', fontFamily:'system-ui,sans-serif' }}>
@@ -127,6 +140,7 @@ export default function Admin() {
               borderLeft: tab === t ? '3px solid #4ade80' : '3px solid transparent',
             }}>
               {t === 'overview' && '📊 '}
+              {t === 'analytics' && '📈 '}
               {t === 'users' && '👥 '}
               {t === 'reports' && '📋 '}
               {t === 'broadcast' && '📢 '}
@@ -288,6 +302,94 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* ANALYTICS */}
+          {tab === 'analytics' && (
+            <div>
+              <h2 style={{ color:'#f1f5f9', fontSize:'20px', fontWeight:'800', margin:'0 0 24px' }}>📈 Analytics</h2>
+
+              {!analytics ? (
+                <div style={{ color:'#64748b', fontSize:'14px' }}>Loading charts…</div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:'24px' }}>
+
+                  {/* Avg resolution KPI */}
+                  <div style={{ display:'flex', gap:'14px', flexWrap:'wrap' }}>
+                    {[
+                      { label:'Avg Resolution Time', value:`${analytics.avg_resolution_hours}h`, icon:'⏱️' },
+                      { label:'Reports (30 days)', value: analytics.by_day.reduce((s,d) => s + d.count, 0), icon:'📋' },
+                      { label:'Categories tracked', value: analytics.by_category.length, icon:'🏷️' },
+                    ].map(({ label, value, icon }) => (
+                      <div key={label} style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'12px', padding:'16px 20px', flex:'1 1 160px' }}>
+                        <div style={{ fontSize:'20px', marginBottom:'6px' }}>{icon}</div>
+                        <div style={{ fontSize:'26px', fontWeight:'800', color:'#4ade80' }}>{value}</div>
+                        <div style={{ color:'#64748b', fontSize:'12px', marginTop:'4px' }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Line chart — reports over 30 days */}
+                  <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px' }}>
+                    <h3 style={{ color:'#f1f5f9', fontSize:'15px', fontWeight:'700', margin:'0 0 20px' }}>Reports over last 30 days</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={analytics.by_day} margin={{ top:4, right:16, left:0, bottom:4 }}>
+                        <defs>
+                          <linearGradient id="lineGreen" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" vertical={false}/>
+                        <XAxis dataKey="label" tick={{ fill:'#64748b', fontSize:11 }} interval={4} tickLine={false} axisLine={false}/>
+                        <YAxis tick={{ fill:'#64748b', fontSize:11 }} tickLine={false} axisLine={false} allowDecimals={false}/>
+                        <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', color:'#f1f5f9', fontSize:'13px' }} cursor={{ stroke:'#334155' }}/>
+                        <Line type="monotone" dataKey="count" stroke="#16a34a" strokeWidth={2.5} dot={false} activeDot={{ r:5, fill:'#4ade80' }} animationDuration={800}/>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Bar chart — by category */}
+                  <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px' }}>
+                    <h3 style={{ color:'#f1f5f9', fontSize:'15px', fontWeight:'700', margin:'0 0 20px' }}>Reports by category</h3>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={analytics.by_category} layout="vertical" margin={{ top:0, right:16, left:8, bottom:0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e3a2f" horizontal={false}/>
+                        <XAxis type="number" tick={{ fill:'#64748b', fontSize:11 }} tickLine={false} axisLine={false} allowDecimals={false}/>
+                        <YAxis type="category" dataKey="label" tick={{ fill:'#94a3b8', fontSize:11 }} tickLine={false} axisLine={false} width={140}/>
+                        <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', color:'#f1f5f9', fontSize:'13px' }} cursor={{ fill:'rgba(22,163,74,0.06)' }}/>
+                        <Bar dataKey="count" fill="#16a34a" radius={[0,6,6,0]} animationDuration={800}/>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Pie chart — by severity */}
+                  <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px', maxWidth:'480px' }}>
+                    <h3 style={{ color:'#f1f5f9', fontSize:'15px', fontWeight:'700', margin:'0 0 20px' }}>Reports by severity</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie
+                          data={analytics.by_severity} dataKey="count" nameKey="label"
+                          cx="50%" cy="50%" innerRadius={55} outerRadius={90}
+                          paddingAngle={3} animationDuration={800}
+                        >
+                          {analytics.by_severity.map((entry) => (
+                            <Cell key={entry.label} fill={
+                              entry.label === 'critical' ? '#dc2626' :
+                              entry.label === 'high' ? '#f97316' :
+                              entry.label === 'medium' ? '#eab308' : '#16a34a'
+                            }/>
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', color:'#f1f5f9', fontSize:'13px' }}/>
+                        <Legend wrapperStyle={{ color:'#94a3b8', fontSize:'13px' }}/>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                </div>
+              )}
             </div>
           )}
 

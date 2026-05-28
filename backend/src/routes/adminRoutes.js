@@ -174,6 +174,47 @@ router.delete('/reports/:id', async (req, res) => {
   }
 });
 
+// ── CHART-1: ANALYTICS DATA (30 days) ─────────────────────────────────────────
+router.get('/analytics', async (req, res) => {
+  try {
+    const [byDay, byCategory, bySeverity, avgResolution] = await Promise.all([
+      pool.query(`
+        SELECT TO_CHAR(gs.day::date, 'Mon DD') AS label,
+               COALESCE(COUNT(r.id), 0)::int AS count
+        FROM generate_series(
+          NOW() - INTERVAL '29 days', NOW(), INTERVAL '1 day'
+        ) AS gs(day)
+        LEFT JOIN reports r
+          ON DATE(r.created_at) = gs.day::date
+        GROUP BY gs.day ORDER BY gs.day
+      `),
+      pool.query(`
+        SELECT hazard_type AS label, COUNT(*)::int AS count
+        FROM reports GROUP BY hazard_type ORDER BY count DESC
+      `),
+      pool.query(`
+        SELECT severity AS label, COUNT(*)::int AS count
+        FROM reports GROUP BY severity
+      `),
+      pool.query(`
+        SELECT ROUND(AVG(
+          EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600
+        )::numeric, 1) AS hours
+        FROM reports WHERE status = 'resolved' AND resolved_at IS NOT NULL
+      `),
+    ]);
+
+    res.json({
+      by_day: byDay.rows,
+      by_category: byCategory.rows,
+      by_severity: bySeverity.rows,
+      avg_resolution_hours: parseFloat(avgResolution.rows[0]?.hours ?? 0),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── BROADCAST ALERT ────────────────────────────────────────────────────────────
 router.post('/broadcast', async (req, res) => {
   try {

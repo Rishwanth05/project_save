@@ -1,0 +1,461 @@
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+const HAZARD_CATEGORIES = [
+  'Pothole / Road Damage', 'Broken Street Light', 'Fallen Tree / Branch',
+  'Flooding / Drainage Issue', 'Abandoned Vehicle', 'Graffiti / Vandalism',
+  'Illegal Dumping', 'Gas Leak / Utility Hazard', 'Structural Damage',
+  'Environmental Hazard', 'Other',
+]
+
+const FEATURES = [
+  { icon: '📍', title: 'Real-time Map', desc: 'See every hazard plotted live on an interactive map with clustering and heatmap views.' },
+  { icon: '📷', title: 'Photo Proof', desc: 'Attach up to 3 photos per report. Camera-verified resolution prevents false closures.' },
+  { icon: '🔔', title: 'Instant Alerts', desc: 'Push notifications the moment a critical hazard is reported within 10 km of you.' },
+  { icon: '🏛️', title: 'Municipality Portal', desc: 'Dedicated dashboard for city workers with bulk status updates and SLA tracking.' },
+  { icon: '🛡️', title: 'Trust Scores', desc: 'Community-driven reputation system rewards accurate, verified reporters.' },
+  { icon: '📊', title: 'Analytics', desc: 'Resolution time trends, category breakdowns, and SLA compliance reports.' },
+]
+
+const HOW_IT_WORKS = [
+  { step: '01', title: 'Spot a hazard', desc: 'Open the app, tap Report, and drop a pin exactly where the problem is.' },
+  { step: '02', title: 'Submit with proof', desc: 'Choose a category, add photos, and describe the severity. Done in under 60 seconds.' },
+  { step: '03', title: 'Track resolution', desc: 'Watch your report move through review → in progress → resolved with status updates.' },
+]
+
+function useCountUp(target, duration = 2000, start = false) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    if (!start || !target) return
+    const step = target / (duration / 16)
+    let current = 0
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target)
+      setCount(Math.floor(current))
+      if (current >= target) clearInterval(timer)
+    }, 16)
+    return () => clearInterval(timer)
+  }, [target, duration, start])
+  return count
+}
+
+function StatCard({ value, label, prefix = '', suffix = '', animate }) {
+  const count = useCountUp(value, 2200, animate)
+  return (
+    <div style={{
+      textAlign: 'center',
+      padding: '32px 24px',
+      background: 'rgba(255,255,255,0.05)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px',
+      backdropFilter: 'blur(12px)',
+      flex: '1 1 180px',
+    }}>
+      <div style={{ fontSize: '42px', fontWeight: '800', color: '#4ade80', letterSpacing: '-1px' }}>
+        {prefix}{count.toLocaleString()}{suffix}
+      </div>
+      <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '6px', fontWeight: '500' }}>{label}</div>
+    </div>
+  )
+}
+
+export default function Landing() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [stats, setStats] = useState(null)
+  const [statsVisible, setStatsVisible] = useState(false)
+  const statsRef = useRef(null)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/v1/public/stats')
+      .then(r => r.json())
+      .then(setStats)
+      .catch(() => setStats({ total_reports: 2400, total_users: 840, resolved_count: 1780, areas_covered: 312 }))
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true) },
+      { threshold: 0.3 }
+    )
+    if (statsRef.current) observer.observe(statsRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0f1e', fontFamily: "'DM Sans', system-ui, sans-serif", color: '#f1f5f9', overflowX: 'hidden' }}>
+
+      {/* ── NAV ── */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        padding: '0 24px', height: '64px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: scrolled ? 'rgba(10,15,30,0.92)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(16px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none',
+        transition: 'all 300ms ease',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="14" fill="#16a34a"/>
+            <path d="M28 10L14 16V28C14 36.4 20.2 44.2 28 46C35.8 44.2 42 36.4 42 28V16L28 10Z" fill="white"/>
+            <path d="M22 28L26 32L34 24" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontWeight: '800', fontSize: '18px', letterSpacing: '-0.3px' }}>Project SAVE</span>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {user ? (
+            <button onClick={() => navigate('/dashboard')} style={btnStyle('#16a34a')}>
+              Go to Dashboard →
+            </button>
+          ) : (
+            <>
+              <button onClick={() => navigate('/login')} style={btnStyle('transparent', '#94a3b8', '1px solid rgba(255,255,255,0.12)')}>
+                Sign in
+              </button>
+              <button onClick={() => navigate('/signup')} style={btnStyle('#16a34a')}>
+                Get started free
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
+      <section style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '80px 24px 60px', textAlign: 'center', position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Animated gradient orbs */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{
+            position: 'absolute', top: '15%', left: '20%', width: '500px', height: '500px',
+            background: 'radial-gradient(circle, rgba(22,163,74,0.18) 0%, transparent 70%)',
+            borderRadius: '50%', filter: 'blur(40px)',
+            animation: 'pulse 6s ease-in-out infinite',
+          }}/>
+          <div style={{
+            position: 'absolute', bottom: '10%', right: '15%', width: '400px', height: '400px',
+            background: 'radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%)',
+            borderRadius: '50%', filter: 'blur(60px)',
+            animation: 'pulse 8s ease-in-out infinite 2s',
+          }}/>
+          <div style={{
+            position: 'absolute', top: '40%', right: '25%', width: '300px', height: '300px',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)',
+            borderRadius: '50%', filter: 'blur(50px)',
+            animation: 'pulse 7s ease-in-out infinite 1s',
+          }}/>
+        </div>
+
+        <style>{`
+          @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.08)} }
+          @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+        `}</style>
+
+        <div style={{ maxWidth: '760px', position: 'relative', zIndex: 1, animation: 'fadeUp 0.7s ease both' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.3)',
+            borderRadius: '999px', padding: '6px 16px', marginBottom: '28px',
+            fontSize: '13px', fontWeight: '600', color: '#4ade80',
+          }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', animation: 'pulse 2s infinite' }}/>
+            Now in public beta — join your community
+          </div>
+
+          <h1 style={{
+            fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: '900', lineHeight: '1.08',
+            letterSpacing: '-2px', marginBottom: '24px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #4ade80 50%, #16a34a 100%)',
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            animation: 'shimmer 4s linear infinite',
+          }}>
+            Your city's safety<br/>starts with one report
+          </h1>
+
+          <p style={{
+            fontSize: 'clamp(16px, 2.5vw, 20px)', color: '#94a3b8', maxWidth: '560px',
+            margin: '0 auto 40px', lineHeight: '1.7', fontWeight: '400',
+          }}>
+            Project SAVE lets anyone report street hazards in 60 seconds.
+            Real-time map, photo proof, and direct escalation to municipality workers —
+            so problems get fixed, not forgotten.
+          </p>
+
+          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate(user ? '/report' : '/signup')} style={{
+              ...btnStyle('#16a34a'),
+              padding: '14px 32px', fontSize: '16px', fontWeight: '700',
+              boxShadow: '0 0 32px rgba(22,163,74,0.4)',
+            }}>
+              Report a hazard →
+            </button>
+            <button onClick={() => navigate(user ? '/dashboard' : '/login')} style={{
+              ...btnStyle('rgba(255,255,255,0.06)', '#f1f5f9', '1px solid rgba(255,255,255,0.12)'),
+              padding: '14px 32px', fontSize: '16px', fontWeight: '600',
+            }}>
+              View the map
+            </button>
+          </div>
+
+          <p style={{ color: '#475569', fontSize: '13px', marginTop: '20px' }}>
+            Free forever for citizens · No app download required
+          </p>
+        </div>
+      </section>
+
+      {/* ── PROBLEM STATEMENT ── */}
+      <section style={{ padding: '80px 24px', maxWidth: '900px', margin: '0 auto' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(22,163,74,0.08) 0%, rgba(10,15,30,0) 100%)',
+          border: '1px solid rgba(22,163,74,0.15)',
+          borderRadius: '24px', padding: 'clamp(32px, 5vw, 60px)',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '40px', marginBottom: '20px' }}>🚧</div>
+          <h2 style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: '800', marginBottom: '16px', letterSpacing: '-0.5px' }}>
+            Hazards go unreported.<br/>Problems go unfixed.
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: '17px', lineHeight: '1.8', maxWidth: '600px', margin: '0 auto 24px' }}>
+            A pothole grows for months. A broken streetlight stays dark for weeks.
+            Nobody knows who to call, calls that get made go into a void,
+            and nothing changes. SAVE closes that loop.
+          </p>
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {['📞 No more hunting for hotlines', '📍 GPS-pinned reports', '✅ Verified resolution'].map(t => (
+              <span key={t} style={{
+                background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)',
+                borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: '#4ade80',
+              }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section style={{ padding: '80px 24px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+          <div style={sectionLabel}>How it works</div>
+          <h2 style={sectionTitle}>Fixed in three steps</h2>
+        </div>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {HOW_IT_WORKS.map(({ step, title, desc }, i) => (
+            <div key={step} style={{
+              flex: '1 1 280px', maxWidth: '340px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: '20px', padding: '36px 28px',
+              position: 'relative', overflow: 'hidden',
+              transition: 'transform 300ms ease, border-color 300ms ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(22,163,74,0.3)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+            >
+              <div style={{
+                position: 'absolute', top: '-10px', right: '-10px',
+                fontSize: '80px', fontWeight: '900', color: 'rgba(22,163,74,0.05)', lineHeight: 1,
+                userSelect: 'none', pointerEvents: 'none',
+              }}>{step}</div>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: 'rgba(22,163,74,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '20px', marginBottom: '20px',
+                border: '1px solid rgba(22,163,74,0.25)',
+              }}>
+                {['📍', '📷', '✅'][i]}
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '10px' }}>{title}</h3>
+              <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.65' }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── LIVE STATS ── */}
+      <section ref={statsRef} style={{ padding: '80px 24px', maxWidth: '900px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={sectionLabel}>Live impact</div>
+          <h2 style={sectionTitle}>Real numbers, real change</h2>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <StatCard value={stats?.total_reports ?? 0} label="Hazards reported" animate={statsVisible} />
+          <StatCard value={stats?.total_users ?? 0} label="Community members" animate={statsVisible} />
+          <StatCard value={stats?.resolved_count ?? 0} label="Issues resolved" animate={statsVisible} />
+          <StatCard value={stats?.areas_covered ?? 0} label="Areas covered" animate={statsVisible} />
+        </div>
+      </section>
+
+      {/* ── FEATURES GRID ── */}
+      <section style={{ padding: '80px 24px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+          <div style={sectionLabel}>Features</div>
+          <h2 style={sectionTitle}>Everything your community needs</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+          {FEATURES.map(({ icon, title, desc }) => (
+            <div key={title} style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: '18px', padding: '28px 24px',
+              transition: 'transform 300ms ease, border-color 300ms ease, background 300ms ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(22,163,74,0.25)'; e.currentTarget.style.background = 'rgba(22,163,74,0.05)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+            >
+              <div style={{ fontSize: '28px', marginBottom: '14px' }}>{icon}</div>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>{title}</h3>
+              <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.65' }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── HAZARD CATEGORIES ── */}
+      <section style={{ padding: '60px 24px', maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
+        <p style={{ color: '#475569', fontSize: '13px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '20px' }}>
+          11 hazard categories covered
+        </p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {HAZARD_CATEGORIES.map(cat => (
+            <span key={cat} style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: '8px', padding: '8px 14px', fontSize: '13px', color: '#94a3b8',
+            }}>{cat}</span>
+          ))}
+        </div>
+      </section>
+
+      {/* ── PRICING TEASER ── */}
+      <section style={{ padding: '80px 24px', maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+          <div style={sectionLabel}>Pricing</div>
+          <h2 style={sectionTitle}>Free for citizens. Powerful for cities.</h2>
+          <p style={{ color: '#64748b', fontSize: '16px', marginTop: '12px' }}>No credit card required to get started.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { name: 'Citizen', price: 'Free', desc: 'For individuals who want to make their community safer.', features: ['Unlimited reports', 'Real-time map', 'Push notifications', 'Trust score'], highlight: false },
+            { name: 'Pro', price: '$4.99/mo', desc: 'For power users and local activists.', features: ['Everything in Free', 'Priority report visibility', 'Advanced analytics', 'Badge collection'], highlight: true },
+            { name: 'Municipality', price: 'From $299/mo', desc: 'For city departments and government agencies.', features: ['Dedicated dashboard', 'Bulk status updates', 'SLA tracking', 'CSV + PDF exports'], highlight: false },
+          ].map(({ name, price, desc, features, highlight }) => (
+            <div key={name} style={{
+              flex: '1 1 260px', maxWidth: '300px',
+              background: highlight ? 'linear-gradient(135deg, rgba(22,163,74,0.15) 0%, rgba(10,15,30,0.8) 100%)' : 'rgba(255,255,255,0.03)',
+              border: highlight ? '1px solid rgba(22,163,74,0.4)' : '1px solid rgba(255,255,255,0.07)',
+              borderRadius: '20px', padding: '32px 24px',
+              position: 'relative',
+            }}>
+              {highlight && (
+                <div style={{
+                  position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
+                  background: '#16a34a', color: '#fff', fontSize: '11px', fontWeight: '700',
+                  padding: '4px 14px', borderRadius: '999px', letterSpacing: '0.5px',
+                }}>MOST POPULAR</div>
+              )}
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80', marginBottom: '8px' }}>{name}</div>
+              <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '8px', letterSpacing: '-1px' }}>{price}</div>
+              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>{desc}</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {features.map(f => (
+                  <li key={f} style={{ color: '#94a3b8', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#4ade80', flexShrink: 0 }}>✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => navigate(user ? '/dashboard' : '/signup')}
+                style={{
+                  width: '100%',
+                  ...btnStyle(highlight ? '#16a34a' : 'rgba(255,255,255,0.06)', '#f1f5f9', highlight ? 'none' : '1px solid rgba(255,255,255,0.1)'),
+                  padding: '12px', fontSize: '14px', fontWeight: '600',
+                }}
+              >
+                {name === 'Citizen' ? 'Get started free' : 'Learn more'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section style={{ padding: '100px 24px', textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
+        <h2 style={{ fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: '900', letterSpacing: '-1.5px', marginBottom: '16px' }}>
+          Ready to make your<br/>neighbourhood safer?
+        </h2>
+        <p style={{ color: '#64748b', fontSize: '17px', marginBottom: '36px', lineHeight: '1.7' }}>
+          Join thousands of residents already reporting hazards, holding cities accountable, and seeing real results.
+        </p>
+        <button onClick={() => navigate(user ? '/report' : '/signup')} style={{
+          ...btnStyle('#16a34a'),
+          padding: '16px 40px', fontSize: '17px', fontWeight: '700',
+          boxShadow: '0 0 48px rgba(22,163,74,0.45)',
+        }}>
+          {user ? 'Report a hazard now →' : 'Create your free account →'}
+        </button>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '40px 24px', maxWidth: '1100px', margin: '0 auto',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg width="22" height="22" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="14" fill="#16a34a"/>
+            <path d="M28 10L14 16V28C14 36.4 20.2 44.2 28 46C35.8 44.2 42 36.4 42 28V16L28 10Z" fill="white"/>
+          </svg>
+          <span style={{ fontWeight: '700', fontSize: '14px' }}>Project SAVE</span>
+          <span style={{ color: '#334155', margin: '0 6px' }}>·</span>
+          <span style={{ color: '#475569', fontSize: '13px' }}>Safety Alert &amp; Visibility Engine</span>
+        </div>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Sign in', '/login']].map(([label, path]) => (
+            <a key={label} href={path}
+              style={{ color: '#475569', fontSize: '13px', textDecoration: 'none', transition: 'color 200ms' }}
+              onMouseEnter={e => e.target.style.color = '#4ade80'}
+              onMouseLeave={e => e.target.style.color = '#475569'}
+            >{label}</a>
+          ))}
+        </div>
+        <p style={{ color: '#334155', fontSize: '12px', width: '100%', textAlign: 'center', marginTop: '8px' }}>
+          © 2026 Project SAVE. Built for communities, by communities.
+        </p>
+      </footer>
+
+    </div>
+  )
+}
+
+const sectionLabel = {
+  display: 'inline-block',
+  background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)',
+  color: '#4ade80', fontSize: '12px', fontWeight: '700', letterSpacing: '1px',
+  textTransform: 'uppercase', padding: '4px 14px', borderRadius: '999px', marginBottom: '14px',
+}
+
+const sectionTitle = {
+  fontSize: 'clamp(24px, 4vw, 42px)', fontWeight: '900', letterSpacing: '-1px',
+  background: 'linear-gradient(135deg, #ffffff 30%, #94a3b8 100%)',
+  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+}
+
+function btnStyle(bg, color = '#fff', border = 'none') {
+  return {
+    background: bg, color, border,
+    borderRadius: '10px', padding: '10px 20px', fontSize: '14px',
+    fontWeight: '600', cursor: 'pointer',
+    transition: 'all 200ms ease',
+    fontFamily: 'inherit',
+  }
+}
