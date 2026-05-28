@@ -150,7 +150,7 @@ export default function Privacy() {
               <li><strong>Restriction</strong> — Request we stop processing your data in certain circumstances</li>
               <li><strong>Objection</strong> — Object to processing based on legitimate interests</li>
             </ul>
-            <p>To exercise these rights, use the account deletion flow in your Profile page, or contact us at <strong>privacy@saveapp.digital</strong>. We will respond within 30 days.</p>
+            <p>To exercise these rights, use the account deletion flow in your Profile page, or contact us at <strong>arishwanthreddy@gmail.com</strong> <em style={{ color: '#64748b', fontSize: '13px' }}>(Temporary contact — dedicated support email coming soon with our domain launch)</em>. We will respond within 30 days.</p>
             <Callout>Account deletion is self-service. Go to Profile → Delete Account → verify with OTP. Your data is purged immediately.</Callout>
           </Section>
 
@@ -176,7 +176,7 @@ export default function Privacy() {
           <Section id="contact" title="Contact Us">
             <p>For privacy-related questions, data requests, or to report a concern:</p>
             <ul>
-              <li><strong>Email:</strong> privacy@saveapp.digital</li>
+              <li><strong>Email:</strong> arishwanthreddy@gmail.com <em style={{ color: '#64748b', fontSize: '13px' }}>(Temporary contact — dedicated support email coming soon with our domain launch)</em></li>
               <li><strong>Response time:</strong> Within 5 business days for general enquiries, within 30 days for GDPR requests</li>
             </ul>
             <p>Project SAVE is operated independently. We are not affiliated with any government agency.</p>

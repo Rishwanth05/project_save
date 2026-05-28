@@ -31,13 +31,15 @@ export default function Profile() {
 
   const [deleteStep, setDeleteStep] = useState(null)
   const [deleteReason, setDeleteReason] = useState('')
+  const [deleteComment, setDeleteComment] = useState('')
   const [deleteOtp, setDeleteOtp] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [deleteMsg, setDeleteMsg] = useState('')
 
+  const contactsKey = `emergency_contacts_${user?.id || ''}`
   const [contacts, setContacts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('emergency_contacts')) || [] }
+    try { return JSON.parse(localStorage.getItem(`emergency_contacts_${user?.id || ''}`)) || [] }
     catch { return [] }
   })
   const [showAddContact, setShowAddContact] = useState(false)
@@ -106,7 +108,7 @@ export default function Profile() {
     if (!deleteOtp || deleteOtp.length !== 6) { setDeleteError('Enter the 6-digit code'); return }
     setDeleteLoading(true); setDeleteError('')
     try {
-      await client.delete('/auth/delete-account', { data: { otp: deleteOtp, reason: deleteReason } })
+      await client.delete('/auth/delete-account', { data: { otp: deleteOtp, reason: deleteReason, comments: deleteComment || undefined } })
       localStorage.clear()
       window.location.href = '/login'
     } catch (err) {
@@ -119,7 +121,7 @@ export default function Profile() {
     if (!newContact.name || !newContact.phone) return
     const updated = [...contacts, { ...newContact, id: Date.now() }]
     setContacts(updated)
-    localStorage.setItem('emergency_contacts', JSON.stringify(updated))
+    localStorage.setItem(contactsKey, JSON.stringify(updated))
     setNewContact({ name: '', phone: '', relation: '' })
     setShowAddContact(false)
   }
@@ -127,7 +129,7 @@ export default function Profile() {
   const deleteContact = (id) => {
     const updated = contacts.filter(c => c.id !== id)
     setContacts(updated)
-    localStorage.setItem('emergency_contacts', JSON.stringify(updated))
+    localStorage.setItem(contactsKey, JSON.stringify(updated))
   }
 
   const initials = (profile?.name || user?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -383,20 +385,58 @@ export default function Profile() {
               {deleteStep === 'confirm' && (
                 <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
                   <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '12px' }}>Are you sure? This cannot be undone.</p>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Reason for leaving (optional)</label>
-                    <select value={deleteReason} onChange={e => setDeleteReason(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '14px', outline: 'none', background: '#fff' }}>
-                      <option value="">Select a reason…</option>
-                      <option value="privacy">Privacy concerns</option>
-                      <option value="not_useful">App not useful to me</option>
-                      <option value="too_many_emails">Too many emails</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
+                  <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>Your reports will be anonymised and kept for community safety records.</p>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => setDeleteStep(null)} style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => setDeleteStep('reason')} style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                      Continue →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 'reason' && (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '20px' }}>
+                  <p style={{ color: '#dc2626', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>Before you go, could you tell us why?</p>
+                  <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '16px' }}>This helps us improve the app. Completely optional.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                    {[
+                      { value: 'no_longer_needed', label: 'I no longer need the app' },
+                      { value: 'privacy_concerns', label: 'Privacy concerns' },
+                      { value: 'too_many_notifications', label: 'Too many notifications' },
+                      { value: 'better_alternative', label: 'Found a better alternative' },
+                      { value: 'technical_issues', label: 'Technical issues' },
+                      { value: 'other', label: 'Other' },
+                    ].map(opt => (
+                      <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: '#374151' }}>
+                        <input
+                          type="radio"
+                          name="deleteReason"
+                          value={opt.value}
+                          checked={deleteReason === opt.value}
+                          onChange={e => setDeleteReason(e.target.value)}
+                          style={{ accentColor: '#dc2626', width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Any additional comments? <span style={{ fontWeight: '400', color: '#94a3b8' }}>(optional)</span></label>
+                    <textarea
+                      value={deleteComment}
+                      onChange={e => setDeleteComment(e.target.value.slice(0, 500))}
+                      placeholder="Tell us more…"
+                      rows={3}
+                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fecaca', borderRadius: '8px', fontSize: '13px', outline: 'none', background: '#fff', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                    <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', textAlign: 'right' }}>{deleteComment.length}/500</p>
+                  </div>
+                  {deleteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '10px' }}>{deleteError}</p>}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => { setDeleteStep('confirm'); setDeleteError('') }} style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>← Back</button>
                     <button onClick={handleRequestDeleteOTP} disabled={deleteLoading} style={{ flex: 1, padding: '10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                      {deleteLoading ? 'Sending…' : 'Send Confirmation Code'}
+                      {deleteLoading ? 'Sending…' : 'Continue to verification'}
                     </button>
                   </div>
                 </div>

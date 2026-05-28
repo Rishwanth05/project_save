@@ -26,6 +26,8 @@ export default function Admin() {
   const [broadcast, setBroadcast] = useState({ title: '', message: '', severity: 'medium' })
   const [broadcastMsg, setBroadcastMsg] = useState('')
   const [analytics, setAnalytics] = useState(null)
+  const [auditLog, setAuditLog] = useState([])
+  const [auditTotal, setAuditTotal] = useState(0)
 
   useEffect(() => {
     if (user?.role !== 'admin') { navigate('/dashboard'); return }
@@ -36,7 +38,16 @@ export default function Admin() {
     if (tab === 'users') loadUsers()
     if (tab === 'reports') loadReports()
     if (tab === 'analytics') loadAnalytics()
+    if (tab === 'audit') loadAuditLog()
   }, [tab, reportFilter])
+
+  const loadAuditLog = async () => {
+    try {
+      const { data } = await client.get('/admin/audit-log?limit=100')
+      setAuditLog(data.entries)
+      setAuditTotal(data.total)
+    } catch { /* silently fail */ }
+  }
 
   const loadAnalytics = async () => {
     try {
@@ -106,7 +117,7 @@ export default function Admin() {
 
   if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0f172a', color:'#fff', fontSize:'18px' }}>Loading admin panel…</div>
 
-  const navTabs = ['overview','analytics','users','reports','broadcast']
+  const navTabs = ['overview','analytics','users','reports','broadcast','audit']
 
   return (
     <div style={{ minHeight:'100vh', background:'#0f172a', fontFamily:'system-ui,sans-serif' }}>
@@ -144,6 +155,7 @@ export default function Admin() {
               {t === 'users' && '👥 '}
               {t === 'reports' && '📋 '}
               {t === 'broadcast' && '📢 '}
+              {t === 'audit' && '🔍 '}
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
@@ -419,6 +431,52 @@ export default function Admin() {
                 <button onClick={sendBroadcast} style={{ background:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', padding:'12px', fontSize:'15px', fontWeight:'700', cursor:'pointer' }}>
                   Send Alert to All Users
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* AUDIT LOG */}
+          {tab === 'audit' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', flexWrap:'wrap', gap:'10px' }}>
+                <h2 style={{ color:'#f1f5f9', fontSize:'20px', fontWeight:'800', margin:0 }}>🔍 Audit Log <span style={{ color:'#64748b', fontWeight:'400' }}>({auditTotal})</span></h2>
+                <span style={{ fontSize:'12px', color:'#475569' }}>Append-only — no entries can be deleted</span>
+              </div>
+              <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'12px', overflow:'auto' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px', minWidth:'700px' }}>
+                  <thead>
+                    <tr style={{ background:'#334155' }}>
+                      {['Time','Admin','Action','Type','Target ID','Changed'].map(h => (
+                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', color:'#94a3b8', fontWeight:'600' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLog.length === 0 ? (
+                      <tr><td colSpan={6} style={{ padding:'24px', textAlign:'center', color:'#475569' }}>No audit entries yet.</td></tr>
+                    ) : auditLog.map(e => {
+                      const oldV = e.old_value ? JSON.stringify(e.old_value) : '—'
+                      const newV = e.new_value ? JSON.stringify(e.new_value) : '—'
+                      const changed = e.old_value || e.new_value
+                        ? `${oldV} → ${newV}`
+                        : '—'
+                      return (
+                        <tr key={e.id} style={{ borderTop:'1px solid #334155' }}>
+                          <td style={{ padding:'10px 14px', color:'#64748b', whiteSpace:'nowrap' }}>{timeAgo(e.created_at)}</td>
+                          <td style={{ padding:'10px 14px', color:'#94a3b8' }}>{e.admin_email}</td>
+                          <td style={{ padding:'10px 14px' }}>
+                            <span style={{ background:'#1e3a5f', color:'#60a5fa', padding:'2px 8px', borderRadius:'6px', fontSize:'11px', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.3px' }}>
+                              {e.action.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td style={{ padding:'10px 14px', color:'#94a3b8', textTransform:'capitalize' }}>{e.target_type}</td>
+                          <td style={{ padding:'10px 14px', color:'#64748b' }}>{e.target_id || '—'}</td>
+                          <td style={{ padding:'10px 14px', color:'#64748b', maxWidth:'260px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={changed}>{changed}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

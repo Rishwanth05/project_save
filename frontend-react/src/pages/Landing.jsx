@@ -334,58 +334,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── PRICING TEASER ── */}
-      <section style={{ padding: '80px 24px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-          <div style={sectionLabel}>Pricing</div>
-          <h2 style={sectionTitle}>Free for citizens. Powerful for cities.</h2>
-          <p style={{ color: '#64748b', fontSize: '16px', marginTop: '12px' }}>No credit card required to get started.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[
-            { name: 'Citizen', price: 'Free', desc: 'For individuals who want to make their community safer.', features: ['Unlimited reports', 'Real-time map', 'Push notifications', 'Trust score'], highlight: false },
-            { name: 'Pro', price: '$4.99/mo', desc: 'For power users and local activists.', features: ['Everything in Free', 'Priority report visibility', 'Advanced analytics', 'Badge collection'], highlight: true },
-            { name: 'Municipality', price: 'From $299/mo', desc: 'For city departments and government agencies.', features: ['Dedicated dashboard', 'Bulk status updates', 'SLA tracking', 'CSV + PDF exports'], highlight: false },
-          ].map(({ name, price, desc, features, highlight }) => (
-            <div key={name} style={{
-              flex: '1 1 260px', maxWidth: '300px',
-              background: highlight ? 'linear-gradient(135deg, rgba(22,163,74,0.15) 0%, rgba(10,15,30,0.8) 100%)' : 'rgba(255,255,255,0.03)',
-              border: highlight ? '1px solid rgba(22,163,74,0.4)' : '1px solid rgba(255,255,255,0.07)',
-              borderRadius: '20px', padding: '32px 24px',
-              position: 'relative',
-            }}>
-              {highlight && (
-                <div style={{
-                  position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
-                  background: '#16a34a', color: '#fff', fontSize: '11px', fontWeight: '700',
-                  padding: '4px 14px', borderRadius: '999px', letterSpacing: '0.5px',
-                }}>MOST POPULAR</div>
-              )}
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#4ade80', marginBottom: '8px' }}>{name}</div>
-              <div style={{ fontSize: '32px', fontWeight: '800', marginBottom: '8px', letterSpacing: '-1px' }}>{price}</div>
-              <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>{desc}</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {features.map(f => (
-                  <li key={f} style={{ color: '#94a3b8', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#4ade80', flexShrink: 0 }}>✓</span>{f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => navigate(user ? '/dashboard' : '/signup')}
-                style={{
-                  width: '100%',
-                  ...btnStyle(highlight ? '#16a34a' : 'rgba(255,255,255,0.06)', '#f1f5f9', highlight ? 'none' : '1px solid rgba(255,255,255,0.1)'),
-                  padding: '12px', fontSize: '14px', fontWeight: '600',
-                }}
-              >
-                {name === 'Citizen' ? 'Get started free' : 'Learn more'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── CTA ── */}
       <section style={{ padding: '100px 24px', textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
         <h2 style={{ fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: '900', letterSpacing: '-1.5px', marginBottom: '16px' }}>

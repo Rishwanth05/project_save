@@ -85,8 +85,14 @@ router.get('/users', async (req, res) => {
 // ── DELETE USER ────────────────────────────────────────────────────────────────
 router.delete('/users/:id', async (req, res) => {
   try {
+    const target = await pool.query('SELECT id, name, email, role FROM users WHERE id = $1', [req.params.id]);
     await pool.query('UPDATE reports SET user_id = NULL WHERE user_id = $1', [req.params.id]);
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    await pool.query(
+      `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, old_value)
+       VALUES ($1, $2, 'delete_user', 'user', $3, $4)`,
+      [req.user.id, req.user.email, req.params.id, JSON.stringify(target.rows[0] || {})]
+    );
     res.json({ message: 'User deleted ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -100,7 +106,15 @@ router.put('/users/:id/role', async (req, res) => {
     if (!['user', 'admin'].includes(role))
       return res.status(400).json({ message: 'Invalid role' });
 
+    const before = await pool.query('SELECT role FROM users WHERE id = $1', [req.params.id]);
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, req.params.id]);
+    await pool.query(
+      `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, old_value, new_value)
+       VALUES ($1, $2, 'change_user_role', 'user', $3, $4, $5)`,
+      [req.user.id, req.user.email, req.params.id,
+       JSON.stringify({ role: before.rows[0]?.role }),
+       JSON.stringify({ role })]
+    );
     res.json({ message: 'Role updated ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -146,6 +160,9 @@ router.put('/reports/:id/status', async (req, res) => {
     if (!validStatuses.includes(status))
       return res.status(400).json({ message: 'Invalid status' });
 
+    const before = await pool.query('SELECT status FROM reports WHERE id = $1', [req.params.id]);
+    const oldStatus = before.rows[0]?.status;
+
     await pool.query(
       `UPDATE reports SET status = $1 WHERE id = $2`,
       [status, req.params.id]
@@ -153,8 +170,16 @@ router.put('/reports/:id/status', async (req, res) => {
 
     await pool.query(
       `INSERT INTO report_status_history (report_id, new_status, user_role, previous_status)
-       VALUES ($1, $2, 'admin', (SELECT status FROM reports WHERE id = $1))`,
-      [req.params.id, status]
+       VALUES ($1, $2, 'admin', $3)`,
+      [req.params.id, status, oldStatus]
+    );
+
+    await pool.query(
+      `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, old_value, new_value)
+       VALUES ($1, $2, 'update_report_status', 'report', $3, $4, $5)`,
+      [req.user.id, req.user.email, req.params.id,
+       JSON.stringify({ status: oldStatus }),
+       JSON.stringify({ status })]
     );
 
     res.json({ message: 'Status updated ✅' });
@@ -166,8 +191,14 @@ router.put('/reports/:id/status', async (req, res) => {
 // ── DELETE REPORT ──────────────────────────────────────────────────────────────
 router.delete('/reports/:id', async (req, res) => {
   try {
+    const target = await pool.query('SELECT id, hazard_type, status, severity FROM reports WHERE id = $1', [req.params.id]);
     await pool.query('DELETE FROM report_status_history WHERE report_id = $1', [req.params.id]);
     await pool.query('DELETE FROM reports WHERE id = $1', [req.params.id]);
+    await pool.query(
+      `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, old_value)
+       VALUES ($1, $2, 'delete_report', 'report', $3, $4)`,
+      [req.user.id, req.user.email, req.params.id, JSON.stringify(target.rows[0] || {})]
+    );
     res.json({ message: 'Report deleted ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -228,7 +259,32 @@ router.post('/broadcast', async (req, res) => {
       [title, message, severity || 'medium']
     );
 
+    await pool.query(
+      `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, new_value)
+       VALUES ($1, $2, 'broadcast_alert', 'notification', $3)`,
+      [req.user.id, req.user.email, JSON.stringify({ title, severity: severity || 'medium' })]
+    );
+
     res.json({ message: 'Alert broadcast sent ✅' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AUDIT LOG ──────────────────────────────────────────────────────────────────
+router.get('/audit-log', async (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+    const result = await pool.query(
+      `SELECT id, admin_id, admin_email, action, target_type, target_id,
+              old_value, new_value, created_at
+       FROM admin_audit_log
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    const total = await pool.query('SELECT COUNT(*) FROM admin_audit_log');
+    res.json({ entries: result.rows, total: parseInt(total.rows[0].count) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -378,7 +378,7 @@ router.post('/request-delete', verifyToken, async (req, res) => {
 // ── CONFIRM ACCOUNT DELETION ───────────────────────────────────────────────────
 router.delete('/delete-account', verifyToken, async (req, res) => {
   try {
-    const { otp, reason } = req.body;
+    const { otp, reason, comments } = req.body;
     if (!otp) return res.status(400).json({ message: 'OTP required' });
 
     const user = await pool.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
@@ -421,8 +421,8 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
 
     if (reason) {
       await pool.query(
-        `INSERT INTO account_deletions (email, reason, deleted_at) VALUES ($1, $2, NOW())`,
-        [email, reason]
+        `INSERT INTO account_deletions (email, reason, comments, deleted_at) VALUES ($1, $2, $3, NOW())`,
+        [email, reason, comments || null]
       );
     }
 

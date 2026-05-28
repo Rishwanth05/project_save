@@ -100,6 +100,18 @@ export default function Dashboard() {
 
   const initials = (user?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 
+  const [menuOpen, setMenuOpen] = useState(false)
+  const navMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (e) => {
+      if (navMenuRef.current && !navMenuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [menuOpen])
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
 
@@ -132,6 +144,12 @@ export default function Dashboard() {
         position: 'sticky', top: 0, zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}>
+        <style>{`
+          @media (max-width: 767px) { .save-nav-desktop { display: none !important; } }
+          @media (min-width: 768px) { .save-nav-hamburger { display: none !important; } }
+        `}</style>
+
+        {/* Logo — always visible */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <svg width="32" height="32" viewBox="0 0 56 56" fill="none">
             <rect width="56" height="56" rx="16" fill="#16a34a"/>
@@ -141,7 +159,8 @@ export default function Dashboard() {
           <span style={{ fontWeight: '700', fontSize: '18px', color: '#0f172a' }}>Project SAVE</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Desktop nav buttons — hidden below 768px */}
+        <div className="save-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => navigate('/report')} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
             + Report Hazard
           </button>
@@ -179,6 +198,53 @@ export default function Dashboard() {
           <button onClick={handleLogout} style={{ background: 'transparent', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', cursor: 'pointer' }}>
             Logout
           </button>
+        </div>
+
+        {/* Hamburger — visible only below 768px */}
+        <div ref={navMenuRef} className="save-nav-hamburger" style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Toggle navigation menu"
+            style={{ background: 'none', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: '20px', lineHeight: 1, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position: 'fixed', top: '64px', left: 0, right: 0,
+              background: '#fff', borderBottom: '1px solid #e2e8f0',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+              zIndex: 99, display: 'flex', flexDirection: 'column',
+            }}>
+              {[
+                { label: '📊 Dashboard',      path: '/dashboard',  color: '#0f172a', weight: '500' },
+                { label: '+ Report Hazard',   path: '/report',     color: '#16a34a', weight: '700' },
+                { label: '📋 View Reports',   path: '/results',    color: '#0f172a', weight: '500' },
+                { label: '🚨 Emergency',      path: '/emergency',  color: '#dc2626', weight: '600' },
+                { label: '🏆 Leaderboard',    path: '/leaderboard',color: '#7c3aed', weight: '500' },
+                { label: '📞 Contact',        path: '/contact',    color: '#64748b', weight: '500' },
+                { label: '👤 Profile',        path: '/profile',    color: '#0f172a', weight: '500' },
+                ...(user?.role === 'admin'
+                  ? [{ label: '⚙️ Admin', path: '/admin', color: '#16a34a', weight: '700' }]
+                  : []),
+              ].map(({ label, path, color, weight }) => (
+                <button
+                  key={path}
+                  onClick={() => { navigate(path); setMenuOpen(false) }}
+                  style={{ background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', padding: '16px 24px', fontSize: '15px', fontWeight: weight, color, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                onClick={() => { handleLogout(); setMenuOpen(false) }}
+                style={{ background: '#fef2f2', border: 'none', padding: '16px 24px', fontSize: '15px', fontWeight: '600', color: '#dc2626', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}
+              >
+                🚪 Logout
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
