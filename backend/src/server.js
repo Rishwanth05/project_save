@@ -16,6 +16,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
 
+// NOTIF3 — background cleanup job
+const { startCleanupJob } = require('./jobs/cleanupNotifications');
+
 const PORT = process.env.PORT || 5000;
 
 // RT-1 — Create HTTP server and attach Socket.io
@@ -45,4 +48,6 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, () => {
   console.log(`🚀 Project SAVE backend running at http://localhost:${PORT}`);
+  // NOTIF3 — start background jobs after server is up
+  startCleanupJob();
 });

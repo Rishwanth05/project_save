@@ -265,6 +265,10 @@ router.post('/broadcast', async (req, res) => {
       [req.user.id, req.user.email, JSON.stringify({ title, severity: severity || 'medium' })]
     );
 
+    // NOTIF4 — emit real-time event so Navbar increments unread badge instantly
+    const io = req.app.get('io');
+    if (io) io.emit('new-notification', { title, severity: severity || 'medium' });
+
     res.json({ message: 'Alert broadcast sent ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
