@@ -48,7 +48,7 @@ export default function Login() {
     setLoading(true)
     try {
       const { data } = await client.post('/auth/verify-login', { email, otp })
-      login(data.user, data.token)
+      login(data.user, data.accessToken, data.refreshToken)
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP')

@@ -1,10 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const xss = require('xss');
 const pool = require('../db');
 const { generateOTP, sendOTPEmail } = require('../utils/email');
 const { verifyToken } = require('../middleware/auth');
+const redis = require('../config/redis');
 const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
@@ -20,6 +22,22 @@ const otpLimiter = rateLimit({
   max: 3,
   message: { message: 'Too many OTP requests. Try again in 30 minutes.' },
 });
+
+// ── Helper: issue token pair ───────────────────────────────────────────────────
+async function issueTokens(user) {
+  const accessToken = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+  const refreshToken = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await pool.query(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+    [user.id, refreshToken, expiresAt]
+  );
+  return { accessToken, refreshToken };
+}
 
 // ── SIGNUP (step 1) ────────────────────────────────────────────────────────────
 router.post('/signup', async (req, res) => {
@@ -114,13 +132,9 @@ router.post('/verify-email', async (req, res) => {
       [email]
     );
 
-    const token = jwt.sign(
-      { id: user.rows[0].id, email: user.rows[0].email, role: user.rows[0].role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const { accessToken, refreshToken } = await issueTokens(user.rows[0]);
 
-    res.json({ message: 'Email verified ✅', token, user: user.rows[0] });
+    res.json({ message: 'Email verified ✅', accessToken, refreshToken, user: user.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -245,13 +259,72 @@ router.post('/verify-login', async (req, res) => {
       [email]
     );
 
-    const token = jwt.sign(
-      { id: user.rows[0].id, email: user.rows[0].email, role: user.rows[0].role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+    const { accessToken, refreshToken } = await issueTokens(user.rows[0]);
+
+    res.json({ message: 'Login successful ✅', accessToken, refreshToken, user: user.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── REFRESH TOKEN ──────────────────────────────────────────────────────────────
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+      return res.status(401).json({ message: 'Refresh token required' });
+
+    const result = await pool.query(
+      `SELECT * FROM refresh_tokens WHERE token = $1 AND expires_at > NOW()`,
+      [refreshToken]
     );
 
-    res.json({ message: 'Login successful ✅', token, user: user.rows[0] });
+    if (result.rows.length === 0)
+      return res.status(401).json({ message: 'Invalid or expired refresh token' });
+
+    const tokenRow = result.rows[0];
+
+    const userResult = await pool.query(
+      `SELECT id, name, email, role FROM users WHERE id = $1`,
+      [tokenRow.user_id]
+    );
+    const user = userResult.rows[0];
+
+    // Rotate: delete old, insert new
+    const newRefreshToken = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
+    await pool.query(
+      `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+      [user.id, newRefreshToken, expiresAt]
+    );
+
+    const newAccessToken = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── LOGOUT ─────────────────────────────────────────────────────────────────────
+router.post('/logout', verifyToken, async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    const accessToken = req.headers.authorization.split(' ')[1];
+
+    await redis.set(`blacklist:${accessToken}`, 1, 'EX', 900);
+
+    if (refreshToken) {
+      await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
+    }
+
+    res.json({ message: 'Logged out ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -457,7 +530,7 @@ router.post('/forgot-password', async (req, res) => {
     if (result.rows.length === 0)
       return res.json({ message: 'If that email exists, a reset link has been sent.' });
 
-    const token = require('crypto').randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString('hex');
     const expires_at = new Date(Date.now() + 15 * 60 * 1000);
 
     await pool.query(`UPDATE password_reset_tokens SET used = true WHERE email = $1`, [email]);

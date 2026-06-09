@@ -1,12 +1,18 @@
 const jwt = require('jsonwebtoken');
+const redis = require('../config/redis');
 
-function verifyToken(req, res, next) {
+async function verifyToken(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token provided' });
   }
+  const token = auth.split(' ')[1];
   try {
-    const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const blacklisted = await redis.get(`blacklist:${token}`);
+    if (blacklisted) {
+      return res.status(401).json({ message: 'Token invalidated' });
+    }
     req.user = decoded;
     next();
   } catch {
