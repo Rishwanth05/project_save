@@ -3,6 +3,7 @@ const pool = require("../db");
 const multer = require("multer");
 const path = require("path");
 const xss = require("xss");
+const { sendPushNotification } = require("../config/firebase");
 
 const router = express.Router();
 
@@ -108,6 +109,17 @@ router.post("/create", upload.single("image"), async (req, res) => {
     if (io) {
       io.emit('new-report', { ...newReport, name: req.body.reporter_name || 'Anonymous' })
     }
+
+    // FCM — notify all users with a saved token (fire and forget)
+    pool.query('SELECT id, fcm_token FROM users WHERE fcm_token IS NOT NULL')
+      .then(({ rows }) => {
+        const notifTitle = clean_hazard_type;
+        const notifBody = `${severity} hazard reported nearby`;
+        rows.forEach(({ fcm_token }) =>
+          sendPushNotification(fcm_token, notifTitle, notifBody)
+        );
+      })
+      .catch((err) => console.error('FCM broadcast query failed:', err.message));
 
     res.status(201).json({ message: "Report created ✅", report: newReport });
   } catch (err) {

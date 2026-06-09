@@ -282,6 +282,18 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
   }
 });
 
+// ── SAVE FCM TOKEN ─────────────────────────────────────────────────────────────
+router.post('/fcm-token', verifyToken, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'token is required' });
+    await pool.query('UPDATE users SET fcm_token = $1 WHERE id = $2', [token, req.user.id]);
+    res.json({ message: 'FCM token saved ✅' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET MY PROFILE ─────────────────────────────────────────────────────────────
 router.get('/me', verifyToken, async (req, res) => {
   try {
