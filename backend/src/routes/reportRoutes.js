@@ -20,7 +20,7 @@ const upload = multer({ storage });
 // TRUST-1 — Recalculate trust score and badge tier
 async function updateTrustScore(pool, userId, delta) {
   const result = await pool.query(
-    `UPDATE users 
+    `UPDATE users
      SET trust_score = GREATEST(0, LEAST(1000, trust_score + $1))
      WHERE id = $2
      RETURNING trust_score`,
@@ -92,7 +92,7 @@ router.post("/create", upload.single("image"), async (req, res) => {
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const result = await pool.query(
-      `INSERT INTO reports 
+      `INSERT INTO reports
         (user_id, hazard_type, severity, description, custom_description, latitude, longitude, location_method, image_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
@@ -105,13 +105,34 @@ router.post("/create", upload.single("image"), async (req, res) => {
     // TRUST-1 — +10 points for submitting a report
     await updateTrustScore(pool, user_id, 10)
 
+    // Update reporter's last known location so future FCM broadcasts can radius-filter them
+    await pool.query(
+      `UPDATE users SET last_lat = $1, last_lng = $2 WHERE id = $3`,
+      [latitude, longitude, user_id]
+    );
+
     const io = req.app.get('io')
     if (io) {
       io.emit('new-report', { ...newReport, name: req.body.reporter_name || 'Anonymous' })
     }
 
-    // FCM — notify all users with a saved token (fire and forget)
-    pool.query('SELECT id, fcm_token FROM users WHERE fcm_token IS NOT NULL')
+    // FCM — notify users within 30 miles of the hazard (fire and forget)
+    // Uses Haversine formula (3959 = Earth radius in miles).
+    // LEAST(1, ...) guards against floating-point rounding above 1 that would make acos return NaN.
+    // Users with no last_lat/last_lng (never submitted a report) are excluded.
+    pool.query(
+      `SELECT fcm_token
+       FROM users
+       WHERE fcm_token IS NOT NULL
+         AND last_lat IS NOT NULL
+         AND last_lng IS NOT NULL
+         AND (3959 * acos(LEAST(1,
+               cos(radians($1)) * cos(radians(last_lat)) *
+               cos(radians(last_lng) - radians($2)) +
+               sin(radians($1)) * sin(radians(last_lat))
+             ))) <= 30`,
+      [latitude, longitude]
+    )
       .then(({ rows }) => {
         const notifTitle = clean_hazard_type;
         const notifBody = `${severity} hazard reported nearby`;
@@ -145,7 +166,7 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
     );
 
     await pool.query(
-      `INSERT INTO report_status_history 
+      `INSERT INTO report_status_history
         (report_id, new_status, previous_status, user_role, proof_image_url)
        VALUES ($1, 'resolved', 'active', 'user', $2)`,
       [report_id, proof_url]

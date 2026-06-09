@@ -14,7 +14,11 @@ const messaging = getMessaging(app);
 
 export async function requestNotificationPermission() {
   try {
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    // Wait until a service worker is fully active and controlling the page.
+    // register() resolves when the SW is parsed/queued (may still be 'installing');
+    // serviceWorker.ready resolves only once a SW is active — required by getToken().
+    const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: registration,
