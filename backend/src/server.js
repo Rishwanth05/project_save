@@ -18,6 +18,7 @@ const app = require('./app');
 
 // NOTIF3 — background cleanup job
 const { startCleanupJob } = require('./jobs/cleanupNotifications');
+const { startDailyBackup } = require('./jobs/dailyBackup');
 
 const PORT = process.env.PORT || 5000;
 
@@ -50,4 +51,6 @@ server.listen(PORT, () => {
   console.log(`🚀 Project SAVE backend running at http://localhost:${PORT}`);
   // NOTIF3 — start background jobs after server is up
   startCleanupJob();
+  startDailyBackup();
+  console.log('[backup] Daily backup cron scheduled for 2AM');
 });

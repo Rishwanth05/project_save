@@ -27,6 +27,10 @@ export default function Dashboard() {
   const [radiusKm, setRadiusKm] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
 
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterSeverity, setFilterSeverity] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
   useEffect(() => {
     client.get('/reports/all')
       .then(({ data }) => {
@@ -87,6 +91,18 @@ export default function Dashboard() {
         getDistanceKm(userLocation.lat, userLocation.lng, parseFloat(r.latitude), parseFloat(r.longitude)) <= radiusKm
       )
     : reports
+
+  const tableReports = filteredReports
+    .filter(r => filterStatus === 'all' || r.status === filterStatus)
+    .filter(r => filterSeverity === 'all' || r.severity === filterSeverity)
+    .filter(r => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        r.hazard_type?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+      )
+    })
 
   const handleRadiusChange = (km) => {
     setRadiusKm(km)
@@ -315,29 +331,93 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', paddingBottom: '32px' }}>
-          {filteredReports.slice(0, 6).map(r => {
-            const s = severityColor[r.severity] || severityColor.low
-            return (
-              <div key={r.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'box-shadow 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#0f172a' }}>{r.hazard_type}</strong>
-                  <span style={{ background: s.bg, color: s.text, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize' }}>
-                    {r.severity}
-                  </span>
-                </div>
-                <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '12px', lineHeight: '1.5' }}>
-                  {r.description?.slice(0, 100)}{r.description?.length > 100 ? '…' : ''}
-                </p>
-                <p style={{ color: '#94a3b8', fontSize: '12px' }}>
-                  {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            )
-          })}
+        {/* Filter bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: '#374151', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="all">All</option>
+              <option value="active">active</option>
+              <option value="resolved">resolved</option>
+            </select>
+            <select
+              value={filterSeverity}
+              onChange={e => setFilterSeverity(e.target.value)}
+              style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: '#374151', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="all">All</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <input
+            type="text"
+            placeholder="Search type or description..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: '#374151', outline: 'none', width: '240px' }}
+          />
+        </div>
+
+        {/* Reports table */}
+        <div style={{ overflowX: 'auto', paddingBottom: '32px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                {['Status', 'Type', 'ID', 'Date', 'Description', 'Reported By', 'Actions'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableReports.map(r => {
+                const badge = {
+                  critical: { bg: '#7c3aed', color: '#fff' },
+                  high:     { bg: '#fee2e2', color: '#dc2626' },
+                  medium:   { bg: '#fef3c7', color: '#d97706' },
+                  low:      { bg: '#dcfce7', color: '#16a34a' },
+                }[r.severity] || { bg: '#f3f4f6', color: '#6b7280' }
+                return (
+                  <tr key={r.id}
+                    style={{ borderBottom: '1px solid #f3f4f6' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}
+                  >
+                    <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600', background: badge.bg, color: badge.color }}>
+                        {r.severity.charAt(0).toUpperCase() + r.severity.slice(1)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '14px 16px', color: '#111827', fontWeight: '500' }}>{r.hazard_type}</td>
+                    <td style={{ padding: '14px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>{'RS' + String(r.id).padStart(3, '0')}</td>
+                    <td style={{ padding: '14px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                      {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '14px 16px', color: '#374151', maxWidth: '240px' }}>
+                      {r.description ? (r.description.length > 40 ? r.description.slice(0, 40) + '...' : r.description) : '—'}
+                    </td>
+                    <td style={{ padding: '14px 16px', color: '#6b7280' }}>{r.name || '—'}</td>
+                    <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                      <a href="#"
+                        style={{ color: '#16a34a', textDecoration: 'none', fontWeight: '500' }}
+                        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                      >
+                        View Details
+                      </a>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

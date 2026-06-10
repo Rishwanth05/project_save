@@ -23,7 +23,7 @@ async function getCsrfToken() {
 async function callRefresh(refreshToken) {
   if (!csrfToken) await fetchCsrfToken()
   return axios.post(
-    '/api/auth/refresh',
+    '/api/v1/auth/refresh',
     { refreshToken },
     {
       withCredentials: true,
@@ -51,7 +51,7 @@ export async function initializeAuth() {
 }
 
 // ── Axios instance ────────────────────────────────────────────────────────────
-const client = axios.create({ baseURL: '/api', withCredentials: true })
+const client = axios.create({ baseURL: '/api/v1', withCredentials: true })
 
 // ── Request interceptor ───────────────────────────────────────────────────────
 client.interceptors.request.use(async (config) => {

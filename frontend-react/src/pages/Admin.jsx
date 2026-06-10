@@ -28,6 +28,9 @@ export default function Admin() {
   const [analytics, setAnalytics] = useState(null)
   const [auditLog, setAuditLog] = useState([])
   const [auditTotal, setAuditTotal] = useState(0)
+  const [adminCategories, setAdminCategories] = useState([])
+  const [catForm, setCatForm] = useState({ name: '', icon: '' })
+  const [catMsg, setCatMsg] = useState('')
 
   useEffect(() => {
     if (user?.role !== 'admin') { navigate('/dashboard'); return }
@@ -39,6 +42,7 @@ export default function Admin() {
     if (tab === 'reports') loadReports()
     if (tab === 'analytics') loadAnalytics()
     if (tab === 'audit') loadAuditLog()
+    if (tab === 'categories') loadAdminCategories()
   }, [tab, reportFilter])
 
   const loadAuditLog = async () => {
@@ -47,6 +51,33 @@ export default function Admin() {
       setAuditLog(data.entries)
       setAuditTotal(data.total)
     } catch { /* silently fail */ }
+  }
+
+  const loadAdminCategories = async () => {
+    try {
+      const { data } = await client.get('/master/categories')
+      setAdminCategories(data)
+    } catch { setCatMsg('Failed to load categories') }
+  }
+
+  const addCategory = async () => {
+    if (!catForm.name.trim()) { setCatMsg('Name is required'); return }
+    try {
+      await client.post('/master/categories', catForm)
+      setCatForm({ name: '', icon: '' })
+      setCatMsg('Category added ✅')
+      loadAdminCategories()
+      setTimeout(() => setCatMsg(''), 3000)
+    } catch (err) {
+      setCatMsg(err.response?.data?.message || 'Failed to add category')
+    }
+  }
+
+  const toggleCategory = async (id) => {
+    try {
+      await client.patch(`/master/categories/${id}/toggle`)
+      loadAdminCategories()
+    } catch { setCatMsg('Toggle failed') }
   }
 
   const loadAnalytics = async () => {
@@ -117,7 +148,7 @@ export default function Admin() {
 
   if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0f172a', color:'#fff', fontSize:'18px' }}>Loading admin panel…</div>
 
-  const navTabs = ['overview','analytics','users','reports','broadcast','audit']
+  const navTabs = ['overview','analytics','users','reports','broadcast','audit','categories']
 
   return (
     <div style={{ minHeight:'100vh', background:'#0f172a', fontFamily:'system-ui,sans-serif' }}>
@@ -156,6 +187,7 @@ export default function Admin() {
               {t === 'reports' && '📋 '}
               {t === 'broadcast' && '📢 '}
               {t === 'audit' && '🔍 '}
+              {t === 'categories' && '🏷️ '}
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
@@ -431,6 +463,66 @@ export default function Admin() {
                 <button onClick={sendBroadcast} style={{ background:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', padding:'12px', fontSize:'15px', fontWeight:'700', cursor:'pointer' }}>
                   Send Alert to All Users
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* CATEGORIES */}
+          {tab === 'categories' && (
+            <div>
+              <h2 style={{ color:'#f1f5f9', fontSize:'20px', fontWeight:'800', margin:'0 0 20px' }}>🏷️ Hazard Categories</h2>
+
+              {/* Add Category form */}
+              <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'12px', padding:'20px', marginBottom:'24px', display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'flex-end' }}>
+                <div style={{ flex:'1 1 180px' }}>
+                  <label style={{ color:'#94a3b8', fontSize:'12px', fontWeight:'600', display:'block', marginBottom:'4px' }}>Name</label>
+                  <input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Sinkhole"
+                    style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'8px 12px', color:'#f1f5f9', fontSize:'13px', outline:'none', width:'100%', boxSizing:'border-box' }} />
+                </div>
+                <div style={{ flex:'1 1 120px' }}>
+                  <label style={{ color:'#94a3b8', fontSize:'12px', fontWeight:'600', display:'block', marginBottom:'4px' }}>Icon (emoji)</label>
+                  <input value={catForm.icon} onChange={e => setCatForm(f => ({ ...f, icon: e.target.value }))} placeholder="e.g. 🕳️"
+                    style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'8px 12px', color:'#f1f5f9', fontSize:'13px', outline:'none', width:'100%', boxSizing:'border-box' }} />
+                </div>
+                <button onClick={addCategory} style={{ background:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', padding:'9px 18px', fontSize:'13px', fontWeight:'700', cursor:'pointer', flexShrink:0 }}>
+                  + Add Category
+                </button>
+              </div>
+              {catMsg && <p style={{ color: catMsg.includes('✅') ? '#4ade80' : '#f87171', fontWeight:'600', marginBottom:'12px', fontSize:'13px' }}>{catMsg}</p>}
+
+              {/* Categories table */}
+              <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'12px', overflow:'auto' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px', minWidth:'500px' }}>
+                  <thead>
+                    <tr style={{ background:'#334155' }}>
+                      {['ID','Name','Icon','Status','Actions'].map(h => (
+                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', color:'#94a3b8', fontWeight:'600' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminCategories.length === 0 ? (
+                      <tr><td colSpan={5} style={{ padding:'24px', textAlign:'center', color:'#475569' }}>No categories found.</td></tr>
+                    ) : adminCategories.map(cat => (
+                      <tr key={cat.id} style={{ borderTop:'1px solid #334155' }}>
+                        <td style={{ padding:'10px 14px', color:'#64748b' }}>{cat.id}</td>
+                        <td style={{ padding:'10px 14px', color:'#f1f5f9', fontWeight:'500' }}>{cat.name}</td>
+                        <td style={{ padding:'10px 14px', color:'#f1f5f9', fontSize:'18px' }}>{cat.icon || '—'}</td>
+                        <td style={{ padding:'10px 14px' }}>
+                          <span style={{ color: cat.is_active ? '#4ade80' : '#f87171', fontWeight:'700', fontSize:'12px' }}>
+                            {cat.is_active ? '● Active' : '○ Inactive'}
+                          </span>
+                        </td>
+                        <td style={{ padding:'10px 14px' }}>
+                          <button onClick={() => toggleCategory(cat.id)}
+                            style={{ background: cat.is_active ? '#7f1d1d' : '#14532d', color: cat.is_active ? '#fca5a5' : '#86efac', border:'none', borderRadius:'6px', padding:'4px 12px', fontSize:'12px', cursor:'pointer', fontWeight:'600' }}>
+                            {cat.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

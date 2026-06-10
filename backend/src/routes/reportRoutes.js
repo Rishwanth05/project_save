@@ -4,6 +4,8 @@ const multer = require("multer");
 const path = require("path");
 const xss = require("xss");
 const { sendPushNotification } = require("../config/firebase");
+const redis = require("../config/redis");
+const { getCache, setCache } = require("../config/redis");
 
 const router = express.Router();
 
@@ -42,12 +44,22 @@ router.get("/test", (req, res) => {
 
 router.get("/all", async (req, res) => {
   try {
+    try {
+      const cached = await getCache('reports:all');
+      if (cached) return res.json(cached);
+    } catch {}
+
     const result = await pool.query(`
       SELECT r.*, u.name, u.trust_score, u.badge_tier
       FROM reports r
       LEFT JOIN users u ON r.user_id = u.id
       ORDER BY r.created_at DESC
     `);
+
+    try {
+      await setCache('reports:all', result.rows, 30);
+    } catch {}
+
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -101,6 +113,8 @@ router.post("/create", upload.single("image"), async (req, res) => {
     );
 
     const newReport = result.rows[0]
+
+    try { await redis.del('reports:all'); } catch {}
 
     // TRUST-1 — +10 points for submitting a report
     await updateTrustScore(pool, user_id, 10)
@@ -193,21 +207,21 @@ router.post("/check-duplicate", async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, hazard_type, description, created_at,
-        (6371000 * acos(
+        (6371000 * acos(LEAST(1,
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
           sin(radians($1)) * sin(radians(latitude))
-        )) AS distance_meters
+        ))) AS distance_meters
        FROM reports
        WHERE hazard_type = $3
          AND created_at > NOW() - INTERVAL '24 hours'
          AND latitude IS NOT NULL
          AND longitude IS NOT NULL
-       HAVING (6371000 * acos(
+       HAVING (6371000 * acos(LEAST(1,
           cos(radians($1)) * cos(radians(latitude)) *
           cos(radians(longitude) - radians($2)) +
           sin(radians($1)) * sin(radians(latitude))
-        )) < 50
+        ))) < 50
        ORDER BY distance_meters ASC
        LIMIT 1`,
       [latitude, longitude, hazard_type]

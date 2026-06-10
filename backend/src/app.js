@@ -6,6 +6,10 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const redis = require('./config/redis');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes');
@@ -14,6 +18,7 @@ const badgeRoutes = require('./routes/badgeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const publicRoutes = require('./routes/publicRoutes');
+const masterDataRoutes = require('./routes/masterDataRoutes');
 
 const app = express();
 
@@ -49,6 +54,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests. Please slow down.' },
+  store: new RedisStore({ sendCommand: (...args) => redis.call(...args) }),
 });
 app.use(globalLimiter);
 
@@ -59,10 +65,21 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many auth attempts. Try again in 15 minutes.' },
+  store: new RedisStore({ sendCommand: (...args) => redis.call(...args) }),
 });
 
 // SEC4 — CSRF protection on all state-changing routes
 const csrfProtection = csrf({ cookie: { httpOnly: true, sameSite: 'strict' } });
+
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: { title: 'Project SAVE API', version: '1.0.0' },
+    servers: [{ url: '/api/v1' }],
+  },
+  apis: ['./src/routes/*.js'],
+});
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => res.json({ message: 'Project SAVE backend ✅' }));
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
@@ -72,14 +89,16 @@ app.get('/api/csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
-app.use('/api/auth', authLimiter, csrfProtection, authRoutes);
-app.use('/api/reports', csrfProtection, reportRoutes);
-app.use('/api/contact', csrfProtection, contactRoutes);
-app.use('/api/badges', csrfProtection, badgeRoutes);
-app.use('/api/admin', csrfProtection, adminRoutes);
-app.use('/api/notifications', csrfProtection, notificationRoutes);
+app.use('/api/v1/auth', authLimiter, csrfProtection, authRoutes);
+app.use('/api/v1/reports', csrfProtection, reportRoutes);
+app.use('/api/v1/contact', csrfProtection, contactRoutes);
+app.use('/api/v1/badges', csrfProtection, badgeRoutes);
+app.use('/api/v1/admin', csrfProtection, adminRoutes);
+app.use('/api/v1/notifications', csrfProtection, notificationRoutes);
 // LAND-2 — Public stats, no CSRF/auth needed (must be before 404 handler)
 app.use('/api/v1/public', publicRoutes);
+// DB4 — Master data (GET public, POST/PATCH admin-only via route-level auth)
+app.use('/api/v1/master', masterDataRoutes);
 
 // MON1 — Sentry error handler (must be before other error middleware)
 if (process.env.SENTRY_DSN) {

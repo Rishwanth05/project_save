@@ -5,7 +5,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import client from '../api/client'
 
-const HAZARD_TYPES = [
+const HAZARD_TYPES_FALLBACK = [
   'Pothole', 'Broken Street Light', 'Flooding', 'Fallen Tree',
   'Gas Leak', 'Exposed Wire', 'Road Damage', 'Broken Sidewalk',
   'Illegal Dumping', 'Graffiti / Vandalism', 'Others',
@@ -70,6 +70,7 @@ function LocationMap({ lat, lng, onLocationSelect }) {
 export default function Report() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [categories, setCategories] = useState(HAZARD_TYPES_FALLBACK)
   const [form, setForm] = useState({
     hazard_type: '', severity: '', description: '',
     latitude: '', longitude: '', location_method: 'gps',
@@ -83,6 +84,27 @@ export default function Report() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [duplicateWarning, setDuplicateWarning] = useState(null)
+
+  useEffect(() => {
+    const CACHE_KEY = 'master:categories'
+    const TTL = 60 * 60 * 1000
+    try {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (cached) {
+        const { data, ts } = JSON.parse(cached)
+        if (Date.now() - ts < TTL) {
+          setCategories(data.map(c => c.name))
+          return
+        }
+      }
+    } catch {}
+    client.get('/master/categories')
+      .then(({ data }) => {
+        setCategories(data.map(c => c.name))
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
+      })
+      .catch(() => setCategories(HAZARD_TYPES_FALLBACK))
+  }, [])
 
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -242,7 +264,7 @@ export default function Report() {
             <div style={{ marginBottom: '24px' }}>
               <label style={labelStyle}>Hazard Type</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {HAZARD_TYPES.map(t => (
+                {categories.map(t => (
                   <button key={t} type="button"
                     onClick={() => setForm(f => ({ ...f, hazard_type: t, custom_description: '' }))}
                     style={{ padding: '10px 8px', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'center', border: form.hazard_type === t ? '2px solid #16a34a' : '1.5px solid #e2e8f0', background: form.hazard_type === t ? '#dcfce7' : '#fff', color: form.hazard_type === t ? '#16a34a' : '#374151', transition: 'all 0.15s' }}>

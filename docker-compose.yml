@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: project_save
       POSTGRES_USER: save_user
-      POSTGRES_PASSWORD: ***REMOVED***
+      POSTGRES_PASSWORD: ${DB_PASS}
     ports:
       - "5432:5432"
     volumes:
@@ -36,10 +36,10 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: save_user
-      DB_PASS: ***REMOVED***
+      DB_PASS: ${DB_PASS}
       DB_NAME: project_save
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: ${JWT_SECRET}
     volumes:
       - ./backend:/app
       - /app/node_modules
