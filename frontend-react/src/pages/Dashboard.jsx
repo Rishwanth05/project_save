@@ -407,13 +407,12 @@ export default function Dashboard() {
                     </td>
                     <td style={{ padding: '14px 16px', color: '#6b7280' }}>{r.name || '—'}</td>
                     <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                      <a href="#"
-                        style={{ color: '#16a34a', textDecoration: 'none', fontWeight: '500' }}
-                        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                      <button
+                        onClick={() => navigate('/results')}
+                        style={{ background: 'none', border: 'none', color: '#16a34a', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
                       >
                         View Details
-                      </a>
+                      </button>
                     </td>
                   </tr>
                 )

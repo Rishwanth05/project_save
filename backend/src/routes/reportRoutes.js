@@ -6,6 +6,7 @@ const xss = require("xss");
 const { sendPushNotification } = require("../config/firebase");
 const redis = require("../config/redis");
 const { getCache, setCache } = require("../config/redis");
+const { verifyToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.get("/test", (req, res) => {
   res.json({ message: "Reports route working ✅" });
 });
 
-router.get("/all", async (req, res) => {
+router.get("/all", verifyToken, async (req, res) => {
   try {
     try {
       const cached = await getCache('reports:all');

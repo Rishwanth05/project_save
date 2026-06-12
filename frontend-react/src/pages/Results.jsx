@@ -86,7 +86,7 @@ function ResolveModal({ report, onClose, onResolved }) {
         {report.image_url && (
           <div style={{ marginBottom: '16px' }}>
             <p style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>BEFORE</p>
-            <img src={report.image_url} alt="before" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
+            <img src={report.image_url?.startsWith('http') ? report.image_url : `${import.meta.env.VITE_API_URL || ''}${report.image_url}`} alt="before" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
           </div>
         )}
         <div onClick={() => document.getElementById('proof-input').click()}
@@ -151,7 +151,7 @@ function BeforeAfterModal({ report, onClose }) {
               <p style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Before</p>
             </div>
             {report.image_url
-              ? <img src={report.image_url} alt="before" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #fee2e2' }} />
+              ? <img src={report.image_url?.startsWith('http') ? report.image_url : `${import.meta.env.VITE_API_URL || ''}${report.image_url}`} alt="before" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #fee2e2' }} />
               : <div style={{ width: '100%', height: '180px', background: '#f1f5f9', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px', border: '2px solid #e2e8f0' }}>No photo</div>}
           </div>
           <div>
@@ -160,7 +160,7 @@ function BeforeAfterModal({ report, onClose }) {
               <p style={{ fontSize: '12px', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>After</p>
             </div>
             {report.proof_url
-              ? <img src={report.proof_url} alt="after" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #bbf7d0' }} />
+              ? <img src={report.proof_url?.startsWith('http') ? report.proof_url : `${import.meta.env.VITE_API_URL || ''}${report.proof_url}`} alt="after" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px', border: '2px solid #bbf7d0' }} />
               : <div style={{ width: '100%', height: '180px', background: '#f0fdf4', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: '13px', border: '2px solid #bbf7d0' }}>Proof loading…</div>}
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function Results() {
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
                   >
                     {r.image_url
-                      ? <img src={r.image_url} alt="hazard" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                      ? <img src={r.image_url?.startsWith('http') ? r.image_url : `${import.meta.env.VITE_API_URL || ''}${r.image_url}`} alt="hazard" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '160px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>No Photo</div>}
 
                     {isResolved && (

@@ -208,6 +208,17 @@ export default function Map({ reports = [], onLocationSelect, center = [-98.5, 3
     if (!mapReady || !mapRef.current) return
     const source = mapRef.current.getSource('reports')
     if (source) source.setData(reportsToGeoJSON(reports))
+    if (reports.length > 0) {
+      const lngs = reports.filter(r => r.longitude).map(r => parseFloat(r.longitude))
+      const lats = reports.filter(r => r.latitude).map(r => parseFloat(r.latitude))
+      if (lngs.length > 0 && lats.length > 0) {
+        const bounds = [
+          [Math.min(...lngs), Math.min(...lats)],
+          [Math.max(...lngs), Math.max(...lats)]
+        ]
+        mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 800 })
+      }
+    }
   }, [reports, mapReady])
 
   // Fly to center when it changes
