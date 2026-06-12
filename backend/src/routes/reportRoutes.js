@@ -17,7 +17,19 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-const upload = multer({ storage });
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    }
+  },
+});
 
 // TRUST-1 — Recalculate trust score and badge tier
 async function updateTrustScore(pool, userId, delta) {
@@ -101,7 +113,9 @@ router.post("/create", upload.single("image"), async (req, res) => {
     const clean_description = xss(description.trim());
     const clean_custom_description = custom_description ? xss(custom_description.trim()) : null;
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const image_url = req.file
+      ? (req.file.location || `/uploads/${req.file.filename}`)
+      : null;
 
     const result = await pool.query(
       `INSERT INTO reports
@@ -172,7 +186,7 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
     if (!req.file)
       return res.status(400).json({ message: "Camera proof image is required to resolve a report" });
 
-    const proof_url = `/uploads/${req.file.filename}`;
+    const proof_url = req.file.location || `/uploads/${req.file.filename}`;
 
     await pool.query(
       `UPDATE reports SET status = 'resolved', resolved_at = NOW() WHERE id = $1`,
@@ -206,22 +220,21 @@ router.post("/check-duplicate", async (req, res) => {
       return res.status(400).json({ message: 'Missing fields' })
 
     const result = await pool.query(
-      `SELECT id, hazard_type, description, created_at,
-        (6371000 * acos(LEAST(1,
-          cos(radians($1)) * cos(radians(latitude)) *
-          cos(radians(longitude) - radians($2)) +
-          sin(radians($1)) * sin(radians(latitude))
-        ))) AS distance_meters
-       FROM reports
-       WHERE hazard_type = $3
-         AND created_at > NOW() - INTERVAL '24 hours'
-         AND latitude IS NOT NULL
-         AND longitude IS NOT NULL
-       HAVING (6371000 * acos(LEAST(1,
-          cos(radians($1)) * cos(radians(latitude)) *
-          cos(radians(longitude) - radians($2)) +
-          sin(radians($1)) * sin(radians(latitude))
-        ))) < 50
+      `SELECT id, hazard_type, description, created_at, distance_meters
+       FROM (
+         SELECT id, hazard_type, description, created_at,
+           (6371000 * acos(LEAST(1,
+             cos(radians($1)) * cos(radians(latitude)) *
+             cos(radians(longitude) - radians($2)) +
+             sin(radians($1)) * sin(radians(latitude))
+           ))) AS distance_meters
+         FROM reports
+         WHERE hazard_type = $3
+           AND created_at > NOW() - INTERVAL '24 hours'
+           AND latitude IS NOT NULL
+           AND longitude IS NOT NULL
+       ) sub
+       WHERE distance_meters < 50
        ORDER BY distance_meters ASC
        LIMIT 1`,
       [latitude, longitude, hazard_type]

@@ -45,7 +45,8 @@ export default function Dashboard() {
 
   // RT-2 — Socket.io real-time listener
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000', { withCredentials: true })
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    socketRef.current = io(API_URL, { withCredentials: true })
 
     socketRef.current.on('connect', () => {
       console.log('🔌 Socket connected')

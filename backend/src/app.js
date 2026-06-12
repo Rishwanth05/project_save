@@ -109,7 +109,10 @@ app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN')
     return res.status(403).json({ message: 'Invalid or missing CSRF token.' });
   console.error('❌', err.message);
-  res.status(err.status || 500).json({ error: { message: err.message || 'Internal server error' } });
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal server error'
+    : err.message || 'Internal server error';
+  res.status(err.status || 500).json({ error: { message } });
 });
 
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));

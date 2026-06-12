@@ -8,7 +8,7 @@ const SECTIONS = [
   { id: 'content', title: 'User-Generated Content' },
   { id: 'prohibited', title: 'Prohibited Uses' },
   { id: 'municipality', title: 'Municipality Accounts' },
-  { id: 'payments', title: 'Payments & Subscriptions' },
+  { id: 'payments', title: 'Pricing' },
   { id: 'liability', title: 'Limitation of Liability' },
   { id: 'termination', title: 'Termination' },
   { id: 'governing', title: 'Governing Law' },
@@ -144,20 +144,10 @@ export default function Terms() {
               <li>Are responsible for all actions taken by authorised staff under their account</li>
               <li>May not resell access to the Service or export report data for commercial use</li>
             </ul>
-            <p>Municipality subscriptions are billed annually or monthly. Cancellation takes effect at the end of the current billing period.</p>
           </Section>
 
-          <Section id="payments" title="Payments & Subscriptions">
-            <p>Pro and Municipality plans are paid subscriptions processed through Stripe. By subscribing, you agree to:</p>
-            <ul>
-              <li>Pay all fees associated with your chosen plan</li>
-              <li>Provide accurate billing information</li>
-              <li>Authorise recurring charges until cancellation</li>
-            </ul>
-            <SubHeading>Refunds</SubHeading>
-            <p>We offer a 7-day money-back guarantee for new Pro subscriptions. Municipality plan refunds are handled on a case-by-case basis. Contact billing@saveapp.digital within 7 days of purchase.</p>
-            <SubHeading>Free tier</SubHeading>
-            <p>The Citizen (free) tier is available indefinitely at no charge. We reserve the right to introduce usage limits on the free tier with 30 days' notice.</p>
+          <Section id="payments" title="Pricing">
+            <p>Project SAVE is currently free to use. There are no paid tiers at this time. Contact us at arishwanthreddy@gmail.com with any questions.</p>
           </Section>
 
           <Section id="liability" title="Limitation of Liability">
@@ -187,7 +177,6 @@ export default function Terms() {
             <p>For questions about these Terms:</p>
             <ul>
               <li><strong>Email:</strong> legal@saveapp.digital</li>
-              <li><strong>Billing enquiries:</strong> billing@saveapp.digital</li>
               <li><strong>Response time:</strong> Within 5 business days</li>
             </ul>
           </Section>

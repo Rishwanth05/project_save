@@ -13,7 +13,6 @@ const FEATURES = [
   { icon: '📍', title: 'Real-time Map', desc: 'See every hazard plotted live on an interactive map with clustering and heatmap views.' },
   { icon: '📷', title: 'Photo Proof', desc: 'Attach up to 3 photos per report. Camera-verified resolution prevents false closures.' },
   { icon: '🔔', title: 'Instant Alerts', desc: 'Push notifications the moment a critical hazard is reported within 10 km of you.' },
-  { icon: '🏛️', title: 'Municipality Portal', desc: 'Dedicated dashboard for city workers with bulk status updates and SLA tracking.' },
   { icon: '🛡️', title: 'Trust Scores', desc: 'Community-driven reputation system rewards accurate, verified reporters.' },
   { icon: '📊', title: 'Analytics', desc: 'Resolution time trends, category breakdowns, and SLA compliance reports.' },
 ]
@@ -189,7 +188,7 @@ export default function Landing() {
             margin: '0 auto 40px', lineHeight: '1.7', fontWeight: '400',
           }}>
             Project SAVE lets anyone report street hazards in 60 seconds.
-            Real-time map, photo proof, and direct escalation to municipality workers —
+            Real-time map, photo proof, and track resolution progress in real time —
             so problems get fixed, not forgotten.
           </p>
 
