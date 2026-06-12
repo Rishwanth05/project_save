@@ -20,6 +20,11 @@ const app = require('./app');
 const { startCleanupJob } = require('./jobs/cleanupNotifications');
 const { startDailyBackup } = require('./jobs/dailyBackup');
 
+const fs = require('fs');
+const path = require('path');
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
 const PORT = process.env.PORT || 5000;
 
 // RT-1 — Create HTTP server and attach Socket.io
