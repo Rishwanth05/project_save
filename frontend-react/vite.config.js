@@ -49,6 +49,10 @@ export default defineConfig({
     }),
   ],
 
+  build: {
+    minify: 'esbuild',
+  },
+
   server: {
     port: 5173,
     proxy: {
