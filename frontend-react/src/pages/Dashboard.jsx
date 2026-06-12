@@ -39,7 +39,9 @@ export default function Dashboard() {
         )
         setReports(sorted)
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error('Reports fetch failed:', err.response?.status, err.response?.data, err.message)
+      })
       .finally(() => setLoading(false))
   }, [])
 
