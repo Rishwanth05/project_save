@@ -39,6 +39,7 @@ export async function initializeAuth() {
   const refreshToken = localStorage.getItem('refreshToken')
   if (!refreshToken) return null
   try {
+    await fetchCsrfToken()
     const res = await callRefresh(refreshToken)
     accessToken = res.data.accessToken
     localStorage.setItem('refreshToken', res.data.refreshToken)
