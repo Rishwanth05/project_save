@@ -9,7 +9,7 @@ export function getAccessToken() { return accessToken }
 
 // ── CSRF helpers ──────────────────────────────────────────────────────────────
 async function fetchCsrfToken() {
-  const res = await axios.get('/api/csrf-token', { withCredentials: true })
+  const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/csrf-token`, { withCredentials: true })
   csrfToken = res.data.csrfToken
   return csrfToken
 }
@@ -23,7 +23,7 @@ async function getCsrfToken() {
 async function callRefresh(refreshToken) {
   if (!csrfToken) await fetchCsrfToken()
   return axios.post(
-    '/api/v1/auth/refresh',
+    `${import.meta.env.VITE_API_URL || ''}/api/v1/auth/refresh`,
     { refreshToken },
     {
       withCredentials: true,
@@ -51,7 +51,7 @@ export async function initializeAuth() {
 }
 
 // ── Axios instance ────────────────────────────────────────────────────────────
-const client = axios.create({ baseURL: '/api/v1', withCredentials: true })
+const client = axios.create({ baseURL: `${import.meta.env.VITE_API_URL || ''}/api/v1`, withCredentials: true })
 
 // ── Request interceptor ───────────────────────────────────────────────────────
 client.interceptors.request.use(async (config) => {
