@@ -1,10 +1,18 @@
-const admin = require('firebase-admin');
+const admin = require('firebase-admin')
 
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    })
+    console.log('Firebase Admin initialized successfully')
+  } catch (err) {
+    console.error('Firebase Admin init failed:', err.message)
+  }
 }
+
+module.exports = admin
 
 async function sendPushNotification(token, title, body, data = {}) {
   try {
