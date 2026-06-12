@@ -18,19 +18,20 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true)
+  } else {
+    cb(new Error('Only JPEG, PNG and WebP images are allowed'), false)
+  }
+}
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
-    }
-  },
-});
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }
+})
 
 // TRUST-1 — Recalculate trust score and badge tier
 async function updateTrustScore(pool, userId, delta) {
@@ -69,10 +70,6 @@ async function dailyReportLimit(req, res, next) {
     next()
   }
 }
-
-router.get("/test", (req, res) => {
-  res.json({ message: "Reports route working ✅" });
-});
 
 router.get("/all", verifyToken, async (req, res) => {
   try {

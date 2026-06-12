@@ -88,7 +88,9 @@ const swaggerSpec = swaggerJsdoc({
   },
   apis: ['./src/routes/*.js'],
 });
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+}
 
 app.get('/', (req, res) => res.json({ message: 'Project SAVE backend ✅' }));
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
