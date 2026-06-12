@@ -221,12 +221,6 @@ export default function Map({ reports = [], onLocationSelect, center = [-98.5, 3
     }
   }, [reports, mapReady])
 
-  // Fly to center when it changes
-  useEffect(() => {
-    if (!mapRef.current) return
-    mapRef.current.flyTo({ center, zoom, duration: 1500 })
-  }, [center[0], center[1], zoom])
-
   // MAP2 — Toggle heatmap vs cluster layers
   const toggleHeatmap = () => {
     if (!mapRef.current) return
