@@ -10,14 +10,17 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads"));
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
+const { S3Client } = require('@aws-sdk/client-s3')
+const multerS3 = require('multer-s3')
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  }
+})
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   if (allowedTypes.includes(file.mimetype)) {
@@ -28,9 +31,17 @@ const fileFilter = (req, file, cb) => {
 }
 
 const upload = multer({
-  storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multerS3({
+    s3,
+    bucket: process.env.S3_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => {
+      const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`
+      cb(null, `uploads/${uniqueName}`)
+    }
+  })
 })
 
 // TRUST-1 — Recalculate trust score and badge tier
@@ -130,9 +141,7 @@ router.post("/create", dailyReportLimit, upload.single("image"), async (req, res
     const clean_description = xss(description.trim());
     const clean_custom_description = custom_description ? xss(custom_description.trim()) : null;
 
-    const image_url = req.file
-      ? (req.file.location || `/uploads/${req.file.filename}`)
-      : null;
+    const image_url = req.file ? req.file.location : null;
 
     const result = await pool.query(
       `INSERT INTO reports
@@ -203,7 +212,7 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
     if (!req.file)
       return res.status(400).json({ message: "Camera proof image is required to resolve a report" });
 
-    const proof_url = req.file.location || `/uploads/${req.file.filename}`;
+    const proof_url = req.file.location;
 
     await pool.query(
       `UPDATE reports SET status = 'resolved', resolved_at = NOW() WHERE id = $1`,
