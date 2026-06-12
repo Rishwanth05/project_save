@@ -6,7 +6,7 @@ const xss = require("xss");
 const { sendPushNotification } = require("../config/firebase");
 const redis = require("../config/redis");
 const { getCache, setCache } = require("../config/redis");
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
