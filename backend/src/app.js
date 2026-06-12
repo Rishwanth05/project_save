@@ -22,7 +22,9 @@ const masterDataRoutes = require('./routes/masterDataRoutes');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 const allowedOrigins = [
   'http://127.0.0.1:5500',
