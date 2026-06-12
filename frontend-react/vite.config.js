@@ -18,14 +18,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            // Cache API report list with network-first strategy
+            // Always fetch reports fresh — never cache
             urlPattern: /^https?:\/\/.*\/api\/reports\/all/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-reports-cache',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 },
-              networkTimeoutSeconds: 5,
-            },
+            handler: 'NetworkOnly',
           },
           {
             // Cache map tiles
