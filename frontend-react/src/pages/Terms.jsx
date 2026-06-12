@@ -7,7 +7,6 @@ const SECTIONS = [
   { id: 'accounts', title: 'User Accounts' },
   { id: 'content', title: 'User-Generated Content' },
   { id: 'prohibited', title: 'Prohibited Uses' },
-  { id: 'municipality', title: 'Municipality Accounts' },
   { id: 'payments', title: 'Pricing' },
   { id: 'liability', title: 'Limitation of Liability' },
   { id: 'termination', title: 'Termination' },
@@ -136,16 +135,6 @@ export default function Terms() {
             <p>Violations may result in immediate account termination and, where applicable, reporting to law enforcement.</p>
           </Section>
 
-          <Section id="municipality" title="Municipality Accounts">
-            <p>Municipality accounts are subject to additional terms agreed upon at time of subscription. Municipality account holders:</p>
-            <ul>
-              <li>May only access reports within their designated geographic jurisdiction</li>
-              <li>Must use the Service only for legitimate public works and safety purposes</li>
-              <li>Are responsible for all actions taken by authorised staff under their account</li>
-              <li>May not resell access to the Service or export report data for commercial use</li>
-            </ul>
-          </Section>
-
           <Section id="payments" title="Pricing">
             <p>Project SAVE is currently free to use. There are no paid tiers at this time. Contact us at arishwanthreddy@gmail.com with any questions.</p>
           </Section>
@@ -159,7 +148,7 @@ export default function Terms() {
               <li>Failure of government authorities to act on submitted reports</li>
               <li>Service interruptions, data loss, or security breaches beyond our reasonable control</li>
             </ul>
-            <p>Our total cumulative liability for any claim arising out of your use of the Service shall not exceed the greater of $100 USD or the total amount you have paid to us in the 12 months preceding the claim.</p>
+            <p>To the maximum extent permitted by applicable law, our total cumulative liability for any claim shall not exceed $100 USD. As the Service is currently provided free of charge, no other payment-based cap applies.</p>
             <p>Project SAVE does not guarantee the accuracy, completeness, or timeliness of any report. The Service is informational only.</p>
           </Section>
 

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,14 +10,22 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+let messaging = null;
+try {
+  if (await isSupported()) {
+    messaging = getMessaging(app);
+  }
+} catch (err) {
+  console.warn('Firebase messaging not supported:', err.message);
+}
+
+export { messaging };
 
 export async function requestNotificationPermission() {
+  if (!messaging) return null;
   try {
     await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    // Wait until a service worker is fully active and controlling the page.
-    // register() resolves when the SW is parsed/queued (may still be 'installing');
-    // serviceWorker.ready resolves only once a SW is active — required by getToken().
     const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
@@ -31,6 +39,7 @@ export async function requestNotificationPermission() {
 }
 
 export function onMessageListener() {
+  if (!messaging) return new Promise(() => {});
   return new Promise((resolve) => {
     onMessage(messaging, (payload) => resolve(payload));
   });

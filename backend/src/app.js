@@ -69,7 +69,13 @@ const authLimiter = rateLimit({
 });
 
 // SEC4 — CSRF protection on all state-changing routes
-const csrfProtection = csrf({ cookie: { httpOnly: true, sameSite: 'strict' } });
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    secure: process.env.NODE_ENV === 'production',
+  }
+});
 
 const swaggerSpec = swaggerJsdoc({
   definition: {

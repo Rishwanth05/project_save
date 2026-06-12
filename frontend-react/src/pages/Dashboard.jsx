@@ -218,7 +218,8 @@ export default function Dashboard() {
         </div>
 
         {/* Hamburger — visible only below 768px */}
-        <div ref={navMenuRef} className="save-nav-hamburger" style={{ position: 'relative' }}>
+        <div ref={navMenuRef} className="save-nav-hamburger" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <NotificationCenter />
           <button
             onClick={() => setMenuOpen(o => !o)}
             aria-label="Toggle navigation menu"

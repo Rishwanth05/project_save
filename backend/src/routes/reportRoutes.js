@@ -50,6 +50,25 @@ async function updateTrustScore(pool, userId, delta) {
   return { score, tier }
 }
 
+async function dailyReportLimit(req, res, next) {
+  try {
+    const userId = req.user?.id
+    if (!userId) return next()
+    const today = new Date().toISOString().slice(0, 10)
+    const key = `daily_reports:${userId}:${today}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 86400)
+    if (count > 5) {
+      return res.status(429).json({
+        message: 'Daily report limit reached. You can submit up to 5 reports per day.'
+      })
+    }
+    next()
+  } catch (err) {
+    next()
+  }
+}
+
 router.get("/test", (req, res) => {
   res.json({ message: "Reports route working ✅" });
 });
@@ -93,7 +112,7 @@ router.get('/trust/:userId', async (req, res) => {
   }
 })
 
-router.post("/create", upload.single("image"), async (req, res) => {
+router.post("/create", dailyReportLimit, upload.single("image"), async (req, res) => {
   try {
     const {
       user_id, hazard_type, severity, description,

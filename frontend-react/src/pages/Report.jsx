@@ -409,7 +409,7 @@ export default function Report() {
               {imagePreview
                 ? <img src={imagePreview} alt="preview" style={{ maxHeight: '200px', borderRadius: '8px', objectFit: 'contain' }} />
                 : <div><div style={{ fontSize: '40px', marginBottom: '12px' }}>📷</div><p style={{ color: '#64748b', fontWeight: '500' }}>Click to upload a photo</p><p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '4px' }}>PNG, JPG up to 10MB</p></div>}
-              <input id="photo-input" type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+              <input id="photo-input" type="file" accept="image/*" capture="environment" onChange={handleImageChange} style={{ display: 'none' }} />
             </div>
 
             <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '16px', marginBottom: '24px' }}>
