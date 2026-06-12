@@ -121,7 +121,15 @@ router.get('/trust/:userId', async (req, res) => {
   }
 })
 
-router.post("/create", dailyReportLimit, upload.single("image"), async (req, res) => {
+router.post("/create", verifyToken, dailyReportLimit, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Multer/S3 upload error:', err)
+      return res.status(500).json({ error: err.message })
+    }
+    next()
+  })
+}, async (req, res) => {
   try {
     const {
       user_id, hazard_type, severity, description,
@@ -198,7 +206,8 @@ router.post("/create", dailyReportLimit, upload.single("image"), async (req, res
 
     res.status(201).json({ message: "Report created ✅", report: newReport });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Report create error:', err)
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 });
 
