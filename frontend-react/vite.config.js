@@ -50,7 +50,7 @@ export default defineConfig({
   ],
 
   build: {
-    minify: false,
+    minify: 'esbuild',
   },
 
   server: {
