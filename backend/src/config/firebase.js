@@ -12,8 +12,6 @@ if (!admin.apps.length) {
   }
 }
 
-module.exports = admin
-
 async function sendPushNotification(token, title, body, data = {}) {
   try {
     const message = {

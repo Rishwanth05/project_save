@@ -188,18 +188,24 @@ router.post("/create", verifyToken, dailyReportLimit, (req, res, next) => {
        WHERE fcm_token IS NOT NULL
          AND last_lat IS NOT NULL
          AND last_lng IS NOT NULL
+         AND id != $3
          AND (3959 * acos(LEAST(1,
                cos(radians($1)) * cos(radians(last_lat)) *
                cos(radians(last_lng) - radians($2)) +
                sin(radians($1)) * sin(radians(last_lat))
              ))) <= 30`,
-      [latitude, longitude]
+      [latitude, longitude, user_id]
     )
       .then(({ rows }) => {
-        const notifTitle = clean_hazard_type;
-        const notifBody = `${severity} hazard reported nearby`;
+        if (rows.length === 0) return;
+        const notifTitle = `🚨 ${clean_hazard_type}`;
+        const notifBody = `${severity} hazard reported within 30 miles of you`;
         rows.forEach(({ fcm_token }) =>
-          sendPushNotification(fcm_token, notifTitle, notifBody)
+          sendPushNotification(fcm_token, notifTitle, notifBody, {
+            reportId: String(newReport.id),
+            latitude: String(latitude),
+            longitude: String(longitude),
+          })
         );
       })
       .catch((err) => console.error('FCM broadcast query failed:', err.message));
