@@ -50,7 +50,6 @@ export default defineConfig({
   ],
 
   build: {
-    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks(id) {
