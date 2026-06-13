@@ -66,12 +66,6 @@ export default function Dashboard() {
       // RT-2 — Flash notification for new report
       setNewReportFlash(report)
       setTimeout(() => setNewReportFlash(null), 5000)
-      client.post('/notifications', {
-        title: `🚨 ${report.hazard_type}`,
-        message: `${report.severity} hazard reported nearby`,
-        severity: report.severity,
-        report_id: report.id,
-      }).catch(() => {})
     })
 
     return () => {

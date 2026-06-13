@@ -178,6 +178,18 @@ router.post("/create", verifyToken, dailyReportLimit, (req, res, next) => {
       io.emit('new-report', { ...newReport, name: req.body.reporter_name || 'Anonymous' })
     }
 
+    // Persist notification to DB so bell icon picks it up via polling
+    pool.query(
+      `INSERT INTO notifications (title, message, severity, report_id, created_at)
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [
+        `🚨 ${clean_hazard_type}`,
+        `${severity} hazard reported nearby`,
+        severity,
+        newReport.id
+      ]
+    ).catch(err => console.error('Notification insert failed:', err.message))
+
     // FCM — notify users within 30 miles of the hazard (fire and forget)
     // Uses Haversine formula (3959 = Earth radius in miles).
     // LEAST(1, ...) guards against floating-point rounding above 1 that would make acos return NaN.
