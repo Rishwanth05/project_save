@@ -50,15 +50,8 @@ export default defineConfig({
   ],
 
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/maplibre-gl')) {
-            return 'maplibre';
-          }
-        },
-      },
-    },
+    target: 'es2022',
+    minify: 'esbuild',
   },
 
   server: {
