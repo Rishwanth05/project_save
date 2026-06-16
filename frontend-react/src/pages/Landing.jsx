@@ -68,7 +68,7 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    fetch('/api/v1/public/stats')
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/public/stats`)
       .then(r => r.json())
       .then(setStats)
       .catch(() => setStats({ total_reports: 2400, total_users: 840, resolved_count: 1780, areas_covered: 312 }))
