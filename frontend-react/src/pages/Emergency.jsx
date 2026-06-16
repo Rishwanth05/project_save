@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import client from '../api/client'
 
 const SAFETY_TIPS = [
   {
@@ -130,10 +131,13 @@ const EMERGENCY_BY_COUNTRY = {
 
 export default function Emergency() {
   const navigate = useNavigate()
-  const [contacts, setContacts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('emergency_contacts')) || [] }
-    catch { return [] }
-  })
+  const [contacts, setContacts] = useState([])
+
+  useEffect(() => {
+    client.get('/auth/emergency-contacts')
+      .then(({ data }) => setContacts(data))
+      .catch(() => {})
+  }, [])
   const [showAddContact, setShowAddContact] = useState(false)
   const [newContact, setNewContact] = useState({ name: '', phone: '', relation: '' })
   const [expandedTip, setExpandedTip] = useState(null)
@@ -195,7 +199,7 @@ export default function Emergency() {
     if (!newContact.name || !newContact.phone) return
     const updated = [...contacts, { ...newContact, id: Date.now() }]
     setContacts(updated)
-    localStorage.setItem('emergency_contacts', JSON.stringify(updated))
+    client.put('/auth/emergency-contacts', { contacts: updated }).catch(() => {})
     setNewContact({ name: '', phone: '', relation: '' })
     setShowAddContact(false)
   }
@@ -203,7 +207,7 @@ export default function Emergency() {
   const deleteContact = (id) => {
     const updated = contacts.filter(c => c.id !== id)
     setContacts(updated)
-    localStorage.setItem('emergency_contacts', JSON.stringify(updated))
+    client.put('/auth/emergency-contacts', { contacts: updated }).catch(() => {})
   }
 
   const inputStyle = {

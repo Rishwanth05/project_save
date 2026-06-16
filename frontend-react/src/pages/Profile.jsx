@@ -37,15 +37,15 @@ export default function Profile() {
   const [deleteError, setDeleteError] = useState('')
   const [deleteMsg, setDeleteMsg] = useState('')
 
-  const contactsKey = `emergency_contacts_${user?.id || ''}`
-  const [contacts, setContacts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`emergency_contacts_${user?.id || ''}`)) || [] }
-    catch { return [] }
-  })
+  const [contacts, setContacts] = useState([])
   const [showAddContact, setShowAddContact] = useState(false)
   const [newContact, setNewContact] = useState({ name: '', phone: '', relation: '' })
 
   useEffect(() => {
+    client.get('/auth/emergency-contacts')
+      .then(({ data }) => setContacts(data))
+      .catch(() => {})
+
     Promise.all([
       client.get('/auth/me'),
       client.get('/auth/my-reports'),
@@ -121,7 +121,7 @@ export default function Profile() {
     if (!newContact.name || !newContact.phone) return
     const updated = [...contacts, { ...newContact, id: Date.now() }]
     setContacts(updated)
-    localStorage.setItem(contactsKey, JSON.stringify(updated))
+    client.put('/auth/emergency-contacts', { contacts: updated }).catch(() => {})
     setNewContact({ name: '', phone: '', relation: '' })
     setShowAddContact(false)
   }
@@ -129,7 +129,7 @@ export default function Profile() {
   const deleteContact = (id) => {
     const updated = contacts.filter(c => c.id !== id)
     setContacts(updated)
-    localStorage.setItem(contactsKey, JSON.stringify(updated))
+    client.put('/auth/emergency-contacts', { contacts: updated }).catch(() => {})
   }
 
   const initials = (profile?.name || user?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)

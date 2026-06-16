@@ -600,4 +600,34 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// GET /auth/emergency-contacts — fetch user's emergency contacts
+router.get('/emergency-contacts', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT emergency_contacts FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    res.json(result.rows[0]?.emergency_contacts || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /auth/emergency-contacts — save user's emergency contacts
+router.put('/emergency-contacts', verifyToken, async (req, res) => {
+  try {
+    const { contacts } = req.body;
+    if (!Array.isArray(contacts)) {
+      return res.status(400).json({ error: 'contacts must be an array' });
+    }
+    await pool.query(
+      'UPDATE users SET emergency_contacts = $1 WHERE id = $2',
+      [JSON.stringify(contacts), req.user.id]
+    );
+    res.json({ message: 'Emergency contacts saved', contacts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
