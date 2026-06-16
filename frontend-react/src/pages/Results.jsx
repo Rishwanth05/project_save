@@ -112,18 +112,20 @@ function ResolveModal({ report, onClose, onResolved }) {
 }
 
 function BeforeAfterModal({ report, onClose }) {
-  const storageKey = `votes_${report.id}`
-  const getVotes = () => {
-    try { return JSON.parse(localStorage.getItem(storageKey)) || { confirmed: 0, disputed: 0, userVote: null } }
-    catch { return { confirmed: 0, disputed: 0, userVote: null } }
-  }
-  const [votes, setVotes] = useState(getVotes)
+  const [votes, setVotes] = useState({ confirmed: 0, disputed: 0, userVote: null })
 
-  const handleVote = (type) => {
+  useEffect(() => {
+    client.get(`/reports/${report.id}/votes`)
+      .then(({ data }) => setVotes(data))
+      .catch(() => {})
+  }, [report.id])
+
+  const handleVote = async (type) => {
     if (votes.userVote) return
-    const updated = { confirmed: type === 'confirmed' ? votes.confirmed + 1 : votes.confirmed, disputed: type === 'disputed' ? votes.disputed + 1 : votes.disputed, userVote: type }
-    setVotes(updated)
-    localStorage.setItem(storageKey, JSON.stringify(updated))
+    try {
+      const { data } = await client.post(`/reports/${report.id}/vote`, { vote: type })
+      setVotes(data)
+    } catch {}
   }
 
   const total = votes.confirmed + votes.disputed

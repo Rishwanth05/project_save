@@ -302,4 +302,62 @@ router.post("/check-duplicate", async (req, res) => {
   }
 });
 
+// GET /reports/:id/votes — fetch vote counts + user's own vote
+router.get('/:id/votes', verifyToken, async (req, res) => {
+  try {
+    const reportId = req.params.id;
+    const userId = req.user.id;
+
+    const counts = await pool.query(
+      `SELECT vote, COUNT(*) as count FROM resolution_votes WHERE report_id = $1 GROUP BY vote`,
+      [reportId]
+    );
+
+    const userVote = await pool.query(
+      `SELECT vote FROM resolution_votes WHERE report_id = $1 AND user_id = $2`,
+      [reportId, userId]
+    );
+
+    const result = { confirmed: 0, disputed: 0, userVote: null };
+    counts.rows.forEach(r => { result[r.vote] = parseInt(r.count); });
+    if (userVote.rows.length > 0) result.userVote = userVote.rows[0].vote;
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /reports/:id/vote — cast or change a vote
+router.post('/:id/vote', verifyToken, async (req, res) => {
+  try {
+    const reportId = req.params.id;
+    const userId = req.user.id;
+    const { vote } = req.body;
+
+    if (!['confirmed', 'disputed'].includes(vote)) {
+      return res.status(400).json({ error: 'Invalid vote type' });
+    }
+
+    await pool.query(
+      `INSERT INTO resolution_votes (user_id, report_id, vote)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, report_id) DO UPDATE SET vote = $3`,
+      [userId, reportId, vote]
+    );
+
+    const counts = await pool.query(
+      `SELECT vote, COUNT(*) as count FROM resolution_votes WHERE report_id = $1 GROUP BY vote`,
+      [reportId]
+    );
+
+    const result = { confirmed: 0, disputed: 0, userVote: vote };
+    counts.rows.forEach(r => { result[r.vote] = parseInt(r.count); });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
