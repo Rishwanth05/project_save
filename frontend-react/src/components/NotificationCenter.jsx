@@ -92,6 +92,7 @@ export default function NotificationCenter({ unreadCount: externalCount, onMarkR
     setOpen(opening)
     if (opening) {
       await fetchNotifications()
+    } else {
       await client.put('/notifications/read-all').catch(() => {})
       setInternalUnread(0)
       prevUnread.current = 0
