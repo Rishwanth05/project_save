@@ -180,13 +180,13 @@ router.post("/create", verifyToken, dailyReportLimit, (req, res, next) => {
 
     // Persist notification to DB so bell icon picks it up via polling
     pool.query(
-      `INSERT INTO notifications (title, message, severity, report_id, created_at)
+      `INSERT INTO notifications (title, message, severity, type, created_at)
        VALUES ($1, $2, $3, $4, NOW())`,
       [
         `🚨 ${clean_hazard_type}`,
         `${severity} hazard reported nearby`,
         severity,
-        newReport.id
+        'proximity_alert'
       ]
     ).catch(err => console.error('Notification insert failed:', err.message))
 
