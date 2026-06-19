@@ -9,7 +9,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!sw.js|workbox-.*).*)", "destination": "/index.html" }
   ]
 }
