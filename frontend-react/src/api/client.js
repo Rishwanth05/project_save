@@ -3,6 +3,7 @@ import axios from 'axios'
 // ── In-memory access token (never persisted to localStorage) ──────────────────
 let accessToken = null
 let csrfToken = null
+let initializingPromise = null
 
 export function setAccessToken(token) { accessToken = token }
 export function getAccessToken() { return accessToken }
@@ -38,17 +39,34 @@ async function callRefresh(refreshToken) {
 export async function initializeAuth() {
   const refreshToken = localStorage.getItem('refreshToken')
   if (!refreshToken) return null
-  try {
-    await fetchCsrfToken()
-    const res = await callRefresh(refreshToken)
-    accessToken = res.data.accessToken
-    localStorage.setItem('refreshToken', res.data.refreshToken)
-    return res.data
-  } catch {
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('user')
-    return null
-  }
+  if (initializingPromise) return initializingPromise
+  initializingPromise = (async () => {
+    try {
+      const csrfRes = await Promise.race([
+        axios.get(`${import.meta.env.VITE_API_URL || ''}/api/csrf-token`, { withCredentials: true }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('CSRF timeout')), 5000))
+      ])
+      csrfToken = csrfRes.data.csrfToken
+      isRefreshing = true
+      const res = await Promise.race([
+        callRefresh(refreshToken),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 5000))
+      ])
+      accessToken = res.data.accessToken
+      localStorage.setItem('refreshToken', res.data.refreshToken)
+      processQueue(null, accessToken)
+      return res.data
+    } catch (err) {
+      processQueue(err, null)
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      return null
+    } finally {
+      isRefreshing = false
+      initializingPromise = null
+    }
+  })()
+  return initializingPromise
 }
 
 // ── Axios instance ────────────────────────────────────────────────────────────

@@ -9,15 +9,28 @@ export function AuthProvider({ children }) {
     try { return JSON.parse(localStorage.getItem('user')) }
     catch { return null }
   })
+  const [authReady, setAuthReady] = useState(false)
 
   // On mount: if a refreshToken exists, silently get a new accessToken
   useEffect(() => {
-    if (localStorage.getItem('refreshToken')) {
-      initializeAuth().catch(() => {
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('user')
-        setUser(null)
-      })
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (refreshToken) {
+      initializeAuth()
+        .then((data) => {
+          if (data && data.user) {
+            setUser(data.user)
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          setUser(null)
+        })
+        .finally(() => {
+          setAuthReady(true)
+        })
+    } else {
+      setAuthReady(true)
     }
   }, [])
 
@@ -61,7 +74,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, authReady, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
