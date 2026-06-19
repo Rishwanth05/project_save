@@ -40,10 +40,12 @@ export default function NotificationCenter({ unreadCount: externalCount, onMarkR
   // Poll unread count every 20s + show toast on new arrivals
   useEffect(() => {
     fetchUnread()
-    const interval = setInterval(fetchUnread, 20000)
-    return () => {
-      clearInterval(interval)
-      if (toastTimer.current) clearTimeout(toastTimer.current)
+    if (externalCount === undefined) {
+      const interval = setInterval(fetchUnread, 20000)
+      return () => {
+        clearInterval(interval)
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+      }
     }
   }, []) // [] — mounts once, no stale loop
 

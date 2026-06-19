@@ -131,6 +131,20 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', close)
   }, [menuOpen])
 
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await client.get('/notifications/unread-count')
+        setUnreadCount(res.data.count)
+      } catch {}
+    }
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 20000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
 
@@ -196,7 +210,7 @@ export default function Dashboard() {
             Contact
           </button>
 
-          <NotificationCenter />
+          <NotificationCenter externalCount={unreadCount} />
 
           <button
             onClick={() => navigate('/profile')}
@@ -221,7 +235,7 @@ export default function Dashboard() {
 
         {/* Hamburger — visible only below 768px */}
         <div ref={navMenuRef} className="save-nav-hamburger" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <NotificationCenter />
+          <NotificationCenter externalCount={unreadCount} />
           <button
             onClick={() => setMenuOpen(o => !o)}
             aria-label="Toggle navigation menu"
