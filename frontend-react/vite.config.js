@@ -15,7 +15,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB — bundle exceeds 2 MiB default
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,xml}'],
         runtimeCaching: [
           {
             // Always fetch reports fresh — never cache
