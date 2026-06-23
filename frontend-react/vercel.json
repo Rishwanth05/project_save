@@ -1,19 +1,21 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/sw.js",
-      "dest": "/sw.js",
-      "headers": {
-        "Cache-Control": "no-cache",
-        "Service-Worker-Allowed": "/"
-      }
+      "source": "/sitemap.xml",
+      "destination": "/sitemap.xml"
     },
     {
-      "handle": "filesystem"
-    },
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
     }
   ]
 }
