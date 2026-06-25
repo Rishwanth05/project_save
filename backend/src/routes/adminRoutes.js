@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('../db');
+const redis = require('../config/redis');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -194,6 +195,7 @@ router.delete('/reports/:id', async (req, res) => {
     const target = await pool.query('SELECT id, hazard_type, status, severity FROM reports WHERE id = $1', [req.params.id]);
     await pool.query('DELETE FROM report_status_history WHERE report_id = $1', [req.params.id]);
     await pool.query('DELETE FROM reports WHERE id = $1', [req.params.id]);
+    try { await redis.del('reports:all'); } catch {}
     await pool.query(
       `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, old_value)
        VALUES ($1, $2, 'delete_report', 'report', $3, $4)`,

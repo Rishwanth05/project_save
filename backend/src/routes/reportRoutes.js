@@ -260,6 +260,7 @@ router.post("/resolve", upload.single("proof"), async (req, res) => {
        VALUES ($1, 'resolved', 'active', 'user', $2)`,
       [report_id, proof_url]
     );
+    try { await redis.del('reports:all'); } catch {}
 
     // TRUST-1 — +25 points for resolving a report
     const reportOwner = await pool.query('SELECT user_id FROM reports WHERE id = $1', [report_id])
