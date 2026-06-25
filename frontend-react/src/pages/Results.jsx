@@ -339,6 +339,10 @@ export default function Results() {
 
   const handleResolved = (reportId, proofUrl) => {
     setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved', proof_url: proofUrl } : r))
+    // Re-fetch fresh data from server to sync proof_url
+    client.get('/reports/all')
+      .then(res => setReports(res.data))
+      .catch(() => {}) // silent fail — patch above already covers UI
   }
 
   const uniqueHazards = [...new Set(reports.map(r => r.hazard_type))]
