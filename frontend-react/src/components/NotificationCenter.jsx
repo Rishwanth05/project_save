@@ -117,6 +117,8 @@ export default function NotificationCenter({ unreadCount: externalCount, onMarkR
     try {
       await client.delete('/notifications/clear-all')
       setNotifications([])
+      setInternalUnread(0)
+      prevUnread.current = 0
     } catch {}
   }
 
