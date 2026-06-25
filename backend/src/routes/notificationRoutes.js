@@ -63,8 +63,7 @@ router.delete('/clear-all', verifyToken, async (req, res) => {
     const result = await pool.query(
       `UPDATE notifications
        SET deleted_at = NOW()
-       WHERE type = 'broadcast'
-         AND deleted_at IS NULL
+       WHERE deleted_at IS NULL
        RETURNING id`
     );
     res.json({
