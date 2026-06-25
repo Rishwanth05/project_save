@@ -90,9 +90,17 @@ router.get("/all", verifyToken, async (req, res) => {
     } catch {}
 
     const result = await pool.query(`
-      SELECT r.*, u.name, u.trust_score, u.badge_tier
+      SELECT r.*, u.name, u.trust_score, u.badge_tier,
+             rsh.proof_image_url AS proof_url
       FROM reports r
       LEFT JOIN users u ON r.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT proof_image_url
+        FROM report_status_history
+        WHERE report_id = r.id AND proof_image_url IS NOT NULL
+        ORDER BY changed_at DESC
+        LIMIT 1
+      ) rsh ON true
       ORDER BY r.created_at DESC
     `);
 
