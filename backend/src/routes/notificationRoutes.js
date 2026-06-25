@@ -9,8 +9,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT * FROM notifications
-      WHERE type = 'broadcast'
-        AND deleted_at IS NULL
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC
       LIMIT 30
     `);
