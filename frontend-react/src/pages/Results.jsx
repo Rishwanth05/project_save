@@ -65,8 +65,8 @@ function ResolveModal({ report, onClose, onResolved }) {
     fd.append('report_id', report.id)
     fd.append('proof', proof)
     try {
-      await client.post('/reports/resolve', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-      onResolved(report.id, preview)
+      const response = await client.post('/reports/resolve', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      onResolved(report.id, response.data.proofUrl)
       onClose()
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to resolve report')
