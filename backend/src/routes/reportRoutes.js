@@ -98,7 +98,7 @@ router.get("/all", verifyToken, async (req, res) => {
         SELECT proof_image_url
         FROM report_status_history
         WHERE report_id = r.id AND proof_image_url IS NOT NULL
-        ORDER BY created_at DESC
+        ORDER BY changed_at DESC
         LIMIT 1
       ) rsh ON true
       ORDER BY r.created_at DESC
