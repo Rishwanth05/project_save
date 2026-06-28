@@ -181,6 +181,7 @@ export default function Report() {
 
   const handleSubmit = async () => {
     if (!form.latitude || !form.longitude) { setError('Please set a location'); return }
+    if (!image) { setError('Please upload a photo before submitting'); return }
 
     // DUP1 — check for duplicate before submitting
     if (!duplicateWarning) {
