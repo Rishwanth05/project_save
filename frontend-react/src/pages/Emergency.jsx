@@ -197,10 +197,14 @@ export default function Emergency() {
 
   const saveContact = () => {
     if (!newContact.name || !newContact.phone) return
-    const updated = [...contacts, { ...newContact, id: Date.now() }]
+    const code = (newContact.countryCode || '+1').replace('-CA', '')
+    const fullPhone = `${code}${newContact.phone}`
+    const contactToSave = { ...newContact, phone: fullPhone, id: Date.now() }
+    delete contactToSave.countryCode
+    const updated = [...contacts, contactToSave]
     setContacts(updated)
     client.put('/auth/emergency-contacts', { contacts: updated }).catch(() => {})
-    setNewContact({ name: '', phone: '', relation: '' })
+    setNewContact({ name: '', phone: '', relation: '', countryCode: '+1' })
     setShowAddContact(false)
   }
 
@@ -383,20 +387,51 @@ export default function Emergency() {
           <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '16px', border: '1.5px solid #16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Add Emergency Contact</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              {[
-                { label: 'Full Name', key: 'name', type: 'text', placeholder: 'e.g. Mom' },
-                { label: 'Phone Number', key: 'phone', type: 'tel', placeholder: 'e.g. +1 234 567 8900' },
-                { label: 'Relation', key: 'relation', type: 'text', placeholder: 'e.g. Mother, Doctor' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{f.label}</label>
-                  <input type={f.type} placeholder={f.placeholder} value={newContact[f.key]}
-                    onChange={e => setNewContact(p => ({ ...p, [f.key]: e.target.value }))}
-                    style={inputStyle}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>Full Name</label>
+                <input type="text" placeholder="e.g. Mom" value={newContact.name}
+                  onChange={e => setNewContact(p => ({ ...p, name: e.target.value }))}
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#16a34a'}
+                  onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>Phone Number</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <select
+                    value={newContact.countryCode || '+1'}
+                    onChange={e => setNewContact(p => ({ ...p, countryCode: e.target.value }))}
+                    style={{ padding: '10px 6px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', background: '#fff', cursor: 'pointer', minWidth: '100px' }}
+                  >
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+1-CA">🇨🇦 +1</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+66">🇹🇭 +66</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+65">🇸🇬 +65</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+86">🇨🇳 +86</option>
+                  </select>
+                  <input type="tel" placeholder="234 567 8900" value={newContact.phone}
+                    onChange={e => setNewContact(p => ({ ...p, phone: e.target.value }))}
+                    style={{ ...inputStyle, flex: 1 }}
                     onFocus={e => e.target.style.borderColor = '#16a34a'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
                 </div>
-              ))}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>Relation</label>
+                <input type="text" placeholder="e.g. Mother, Doctor" value={newContact.relation}
+                  onChange={e => setNewContact(p => ({ ...p, relation: e.target.value }))}
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#16a34a'}
+                  onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setShowAddContact(false)} style={{ padding: '10px 20px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
